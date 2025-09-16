@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
   },
   mobile: {
-    type: Number,
+    type: String,
     required: true,
   },
   role: {
@@ -74,3 +74,4 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);
+
