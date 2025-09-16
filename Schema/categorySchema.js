@@ -32,6 +32,7 @@ const categorySchema = new mongoose.Schema({
             "blocked"
         ], 
         default: "active" },
-});
+}, { timestamps: true }
+);
 
 module. exports = mongoose.model("Category", categorySchema);

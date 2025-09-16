@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
   },
   mobile: {
-    type: Number,
+    type: String,
     required: true,
   },
   role: {
@@ -45,24 +45,6 @@ const userSchema = new mongoose.Schema({
   },
   city: {
     type: String,
-    enum: [
-      "Kochi",
-      "Mattancherry",
-      "Marine Drive",
-      "Vyttila",
-      "Edappally",
-      "Kakkanad",
-      "Kaloor",
-      "Thrippunithura",
-      "Palarivattom",
-      "Aluva",
-      "Ernakulam Town",
-      "Thevara",
-      "Panampilly Nagar",
-      "Kalamassery",
-      "Willingdon Island"
-      
-    ],
     required: true,
   },
   token: {
@@ -71,6 +53,8 @@ const userSchema = new mongoose.Schema({
   cookieKey: {
     type: String,
   },
-}, { timestamps: true });
+},
+{ timestamps: true }
+);
 
 module.exports = mongoose.model("User", userSchema);

@@ -22,24 +22,7 @@ const eventSchema = new mongoose. Schema ({
         mapLink : String,
         city :{
             type: String,
-    enum: [
-      "Kochi",
-      "Mattancherry",
-      "Marine Drive",
-      "Vyttila",
-      "Edappally",
-      "Kakkanad",
-      "Kaloor",
-      "Thrippunithura",
-      "Palarivattom",
-      "Aluva",
-      "Ernakulam Town",
-      "Thevara",
-      "Panampilly Nagar",
-      "Kalamassery",
-      "Willingdon Island"
-    ],
-    required: true
+            required: true
         },
     },
     startDate : Date,
@@ -60,7 +43,6 @@ const eventSchema = new mongoose. Schema ({
       gender: { 
         type: String, 
         enum: [
-        "No Restriction", 
         "male", 
         "female", 
         "trans"
@@ -98,7 +80,9 @@ const eventSchema = new mongoose. Schema ({
       UPIID: String,
       IFSCcode: String,
     },
-    agenda: [{ time: String, title: String }],
+    agenda: [{ 
+        time: String, title: String 
+    }],
   },
   { timestamps: true }
 );
