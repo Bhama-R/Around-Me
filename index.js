@@ -1,13 +1,27 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
+
+const userRoutes = require('./Routes/userRoutes');
+const categoryRoutes = require('./Routes/categoryRoutes');
+const fakeReportRoutes = require('./Routes/fakeReportRoutes');
+const interestRoutes = require('./Routes/interestRoutes');
+const eventRoutes = require('./Routes/eventRoutes');
+const attendeeRoutes = require('./Routes/attendeeRoutes');
 
 const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended : true}));
+app.use(cookieParser());
  
-
+app.use('/users',userRoutes);
+app.use('/category',categoryRoutes);
+app.use('/fakeReport',fakeReportRoutes);
+app.use('/interest',interestRoutes);
+app.use('/event',eventRoutes);
+app.use('/ateendee',attendeeRoutes);
 
 const connectToDB = async () => {
     try{
