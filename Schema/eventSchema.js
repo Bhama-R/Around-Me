@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const eventSchema = new mongoose. Schema ({
+const eventSchema = new mongoose.Schema ({
     title : {
         type : String,
         required: true
@@ -15,7 +15,7 @@ const eventSchema = new mongoose. Schema ({
     },
     createdBy : {
         type : mongoose.Schema.Types.ObjectId,
-        ref : "Users"
+        ref : "User"
     },
     location : {
         address : String,
@@ -36,6 +36,7 @@ const eventSchema = new mongoose. Schema ({
         default: "active" },
     participants: [
         { 
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
             name: String, 
             profile: String 
         }],
@@ -45,7 +46,8 @@ const eventSchema = new mongoose. Schema ({
         enum: [
         "male", 
         "female", 
-        "trans"
+        "trans",
+        "any" 
     ], 
         default: "any" 
     },

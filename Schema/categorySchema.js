@@ -9,17 +9,6 @@ const categorySchema = new mongoose.Schema({
     },
     icon : {
         type : String,
-        enum : [
-            "Music",
-            "sports",
-            "technology",
-            "art",
-            "literature",
-            "dance",
-            "drama",
-            "food",
-            "other",
-        ],
     },
     createdBy: { 
         type: mongoose.Schema.Types.ObjectId,  

@@ -10,7 +10,7 @@ async function create(req, res) {
   }
 }
 
-// Read All
+// Get all
 async function getAll(req, res) {
   try {
     const events = await EventService.getEvents();
@@ -20,7 +20,7 @@ async function getAll(req, res) {
   }
 }
 
-// Read One
+// Get one
 async function getOne(req, res) {
   try {
     const event = await EventService.getEventById(req.params.id);
@@ -44,14 +44,15 @@ async function update(req, res) {
 // Delete
 async function remove(req, res) {
   try {
-    await EventService.deleteEvent(req.params.id);
+    // pass userId if you want authorization: req.user.id
+    await EventService.deleteEvent(req.params.id /*, req.user.id */);
     res.json({ message: "Event deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
 
-// Block
+// Block / Unblock
 async function block(req, res) {
   try {
     const event = await EventService.blockEvent(req.params.id);
@@ -61,7 +62,6 @@ async function block(req, res) {
   }
 }
 
-// Unblock
 async function unblock(req, res) {
   try {
     const event = await EventService.unblockEvent(req.params.id);
@@ -71,20 +71,20 @@ async function unblock(req, res) {
   }
 }
 
-// Add Participant
+// Add participant
 async function addParticipant(req, res) {
   try {
-    const event = await EventService.addParticipant(req.params.id, req.body);
-    res.json(event);
+    const participant = await EventService.applyForEvent(req.params.id, req.body);
+    res.json(participant);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 }
 
-// Remove Participant
+// Remove participant
 async function removeParticipant(req, res) {
   try {
-    const event = await EventService.removeParticipant(req.params.id, req.body.name);
+    const event = await EventService.cancelParticipation(req.params.id, req.body.userId);
     res.json(event);
   } catch (err) {
     res.status(400).json({ error: err.message });

@@ -1,12 +1,12 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const category = require ('../Schema/categorySchema');
+const Category = require ('../Schema/categorySchema');
 
 async function createCategory(payload){
     try{
-        const category = new category(payload);
-        await category.save();
-        return category;
+        const newCategory = new Category(payload);
+        await newCategory.save();
+        return newCategory;
     }catch(err){
         throw err;
     }
@@ -14,7 +14,7 @@ async function createCategory(payload){
 
 async function getCategories(filter = {}) {
     try{
-        return await category.find(filter).populate("createdBy","name email" );
+        return await Category.find(filter).populate("createdBy","name email" );
     }catch(err){
         console.error("getCategories",err);
         throw err;
@@ -32,7 +32,7 @@ async function getCategoryById(id) {
 
 async function updateCategory(id, updates){
     try{
-        return await category.findByIdAndUpdate(id, updates, {new:true});
+        return await Category.findByIdAndUpdate(id, updates, {new:true});
     }catch(err){
         console.error("updateCategory",err);
         throw err;

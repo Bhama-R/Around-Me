@@ -1,6 +1,6 @@
-const express = require("express");
 const mongoose = require("mongoose");
 const Event = require("../Schema/eventSchema");
+const InterestService = require("./interestService"); // Make sure this exists
 
 // Create new event
 async function createEvent(data) {
@@ -26,35 +26,103 @@ async function updateEvent(id, data) {
   return await Event.findByIdAndUpdate(id, data, { new: true });
 }
 
-// Delete event
-async function deleteEvent(id) {
+// Delete event (admin or owner)
+async function deleteEvent(id, userId) {
+  const event = await Event.findById(id);
+  if (!event) throw new Error("Event not found");
+
+  if (userId && event.createdBy.toString() !== userId.toString()) {
+    throw new Error("Not authorized to delete this event");
+  }
+
   return await Event.findByIdAndDelete(id);
 }
 
-// Block event
+// Block / Unblock event
 async function blockEvent(id) {
   return await Event.findByIdAndUpdate(id, { status: "blocked" }, { new: true });
 }
 
-// Unblock event
 async function unblockEvent(id) {
   return await Event.findByIdAndUpdate(id, { status: "active" }, { new: true });
 }
 
-// Add participant
-async function addParticipant(eventId, participant) {
+// Apply for event / add participant
+async function applyForEvent(eventId, participant) {
+  const event = await Event.findById(eventId);
+  if (!event) throw new Error("Event not found");
+
+  // Check existing interest
+  const existingInterest = await InterestService.getInterests({
+    eventId,
+    userId: participant.userId,
+  });
+  if (existingInterest.length > 0) throw new Error("User has already expressed interest");
+
+  // Capacity check
+  if (event.capacity && existingInterest.length >= event.capacity) {
+    throw new Error("Event has reached maximum capacity");
+  }
+
+  // Restrictions
+  if (event.restrictions?.gender && participant.gender !== event.restrictions.gender)
+    throw new Error(`Event restricted to ${event.restrictions.gender} participants`);
+
+  if (event.restrictions?.age) {
+    const { min, max } = event.restrictions.age;
+    if ((min && participant.age < min) || (max && participant.age > max)) {
+      throw new Error(`Event restricted to age between ${min || "-"} and ${max || "-"}`);
+    }
+  }
+
+  if (event.restrictions?.place && participant.place !== event.restrictions.place) {
+    throw new Error(`Event restricted to members from ${event.restrictions.place}`);
+  }
+
+  // Create Interest
+  const interest = await InterestService.createInterest({
+    eventId,
+    userId: participant.userId,
+    status: "pending",
+    payment: participant.payment || null,
+    seatNumber: null,
+  });
+
+  return interest;
+}
+
+// Cancel / remove participant
+async function cancelParticipation(eventId, userId) {
   return await Event.findByIdAndUpdate(
     eventId,
-    { $push: { participants: participant } },
+    { $pull: { participants: { userId: userId } } },
     { new: true }
   );
 }
 
-// Remove participant
-async function removeParticipant(eventId, participantName) {
-  return await Event.findByIdAndUpdate(
-    eventId,
-    { $pull: { participants: { name: participantName } } },
+// Update participation
+async function updateParticipation(eventId, userId, updateData) {
+  return await Event.findOneAndUpdate(
+    { _id: eventId, "participants.userId": userId },
+    { $set: { "participants.$": updateData } },
+    { new: true }
+  );
+}
+
+// Override application (approve/reject)
+async function overrideApplication(eventId, participantId, status) {
+  return await Event.findOneAndUpdate(
+    { _id: eventId, "participants._id": participantId },
+    { $set: { "participants.$.status": status } },
+    { new: true }
+  );
+}
+
+// Update payment
+async function updatePayment(eventId, userId, paymentData) {
+  return await Event.findOneAndUpdate(
+    { _id: eventId, "participants.userId": userId },
+    { $set: { "participants.$.payment": paymentData } },
     { new: true }
   );
 }
@@ -67,6 +135,9 @@ module.exports = {
   deleteEvent,
   blockEvent,
   unblockEvent,
-  addParticipant,
-  removeParticipant,
+  applyForEvent,
+  cancelParticipation,
+  updateParticipation,
+  overrideApplication,
+  updatePayment,
 };
