@@ -4,18 +4,40 @@ const Interest = require("../Schema/interestSchema");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
-// --- Utility: send verification email (stub) ---
+const nodemailer = require("nodemailer");
+
 async function sendVerificationEmail(email, token) {
   const link = `http://localhost:3000/api/users/verify/${token}`;
-  console.log(`📩 Send this link to user: ${link}`);
-  // TODO: integrate with nodemailer, SES, etc.
+
+  // Create transporter
+
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,              
+    secure: false,          
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,   
+    },
+  });
+
+  // Email options
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Verify your account",
+    html: `<p>Click the link to verify your account:</p>
+           <a href="${link}">${link}</a>`,
+  };
+
+  // Send email
+  await transporter.sendMail(mailOptions);
+
+  console.log(`📩 Verification email sent to ${email}`);
 }
 
-/**
- * ========================
- *  USER SERVICE FUNCTIONS
- * ========================
- */
+//  USER SERVICE FUNCTIONS
+
 
 // Register 
 async function register(userData) {
@@ -26,8 +48,8 @@ async function register(userData) {
 
   const newUser = new User({
     ...userData,
-    role: "member", // default
-    status: "blocked", // blocked until verification
+    role: "member", 
+    status: "blocked", 
     token,
     createdAt: new Date(),
   });

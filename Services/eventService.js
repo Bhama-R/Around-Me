@@ -60,9 +60,9 @@ async function applyForEvent(eventId, participant) {
   if (existingInterest.length > 0) throw new Error("User has already expressed interest");
 
   // Capacity check
-  if (event.capacity && existingInterest.length >= event.capacity) {
-    throw new Error("Event has reached maximum capacity");
-  }
+  const totalParticipants = await InterestService.getInterests({ eventId, status: "approved" });
+  if (event.capacity && totalParticipants.length >= event.capacity) throw new Error("Event full");
+  
 
   // Restrictions
   if (event.restrictions?.gender && participant.gender !== event.restrictions.gender)
@@ -75,9 +75,11 @@ async function applyForEvent(eventId, participant) {
     }
   }
 
-  if (event.restrictions?.place && participant.place !== event.restrictions.place) {
-    throw new Error(`Event restricted to members from ${event.restrictions.place}`);
-  }
+ // Restrict to participants from the event's place only
+if (participant.place.trim().toLowerCase() !== event.place.trim().toLowerCase()) {
+  throw new Error(`Event is only open to members from ${event.place}`);
+}
+
 
   // Create Interest
   const interest = await InterestService.createInterest({

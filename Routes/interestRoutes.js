@@ -3,7 +3,7 @@ const router = express.Router();
 const interestController = require("../Controllers/interestController");
 
 // Express interest in event
-router.post("/interest", interestController.expressInterest);
+router.post("/", interestController.expressInterest);
 
 // Get all interests (filter by ?eventId=&userId=&status=)
 router.get("/interests", interestController.listInterests);
