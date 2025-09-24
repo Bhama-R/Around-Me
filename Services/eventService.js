@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Event = require("../Schema/eventSchema");
-const InterestService = require("./interestService"); // Make sure this exists
+const InterestService = require("./interestService"); 
 
 // Create new event
 async function createEvent(data) {
@@ -16,9 +16,24 @@ async function getEvents(filter = {}) {
 
 // Get event by ID
 async function getEventById(id) {
-  return await Event.findById(id)
+  const event = await Event.findById(id)
     .populate("category")
     .populate("createdBy", "name email");
+    console.log(event);
+
+  if (!event) throw new Error("Event not found");
+
+  // Fetch participants (from Interest collection)
+  const interests = await InterestService.getInterests({ eventId: id });
+
+  return {
+    ...event.toObject(),
+    participants: interests.map((i) => ({
+      user: i.userId,
+      status: i.status,
+      payment: i.payment,
+    })),
+  };
 }
 
 // Update event

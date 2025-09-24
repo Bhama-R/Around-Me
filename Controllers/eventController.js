@@ -1,5 +1,5 @@
 const EventService = require("../Services/eventService");
-
+const { getParticipantsByEvent } = require("../Services/interestService");
 // Create
 async function create(req, res) {
   try {
@@ -91,6 +91,23 @@ async function removeParticipant(req, res) {
   }
 }
 
+async function fetchEventParticipants(req, res) {
+  try {
+    const { eventId } = req.params;
+    const result = await getParticipantsByEvent(eventId);
+
+    if (!result) {
+      return res.status(404).json({ message: "No participants found for this event" });
+    }
+
+    res.json(result); // { event: {...}, participants: [...] }
+  } catch (err) {
+    console.error("fetchEventParticipants", err);
+    res.status(500).json({ error: "Failed to fetch participants" });
+  }
+}
+
+
 module.exports = {
   create,
   getAll,
@@ -101,4 +118,5 @@ module.exports = {
   unblock,
   addParticipant,
   removeParticipant,
+  fetchEventParticipants
 };

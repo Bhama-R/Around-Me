@@ -61,6 +61,30 @@ async function withdrawInterest(id, reason) {
     throw err;
   }
 }
+async function getParticipantsByEvent(eventId) {
+  try {
+    const interests = await Interest.find({ eventId, status: "applied" })
+      .populate("userId", "name email")
+      .populate("eventId", "title startDate");
+
+    if (!interests.length) return null;
+
+    // Extract event info (same for all participants)
+    const eventInfo = {
+      title: interests[0].eventId.title,
+      startDate: interests[0].eventId.startDate,
+    };
+
+    // Extract users
+    const users = interests.map((i) => i.userId);
+
+    return { event: eventInfo, participants: users };
+  } catch (err) {
+    console.error("getParticipantsByEvent", err);
+    throw err;
+  }
+}
+
 
 module.exports = {
   createInterest,
@@ -68,5 +92,6 @@ module.exports = {
   getInterestById,
   updateInterest,
   withdrawInterest,
+  getParticipantsByEvent
 };
  
