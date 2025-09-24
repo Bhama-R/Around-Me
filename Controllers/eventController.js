@@ -30,6 +30,18 @@ async function getOne(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
+// get attendee only
+async function getEventParticipants(req, res) {
+  try {
+    const participants = await EventService.getEventParticipants(req.params.id);
+    if (!participants.length) {
+      return res.status(404).json({ message: "No participants found for this event" });
+    }
+    res.json(participants); // just participants
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
 
 // Update
 async function update(req, res) {
@@ -112,6 +124,7 @@ module.exports = {
   create,
   getAll,
   getOne,
+  getEventParticipants,
   update,
   remove,
   block,

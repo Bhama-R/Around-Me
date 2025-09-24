@@ -13,7 +13,7 @@ router.get("/", EventController.getAll);
 router.get("/:id", EventController.getOne);
 router.put("/:id", eventValidation, validationRes, EventController.update);
 router.delete("/:id", EventController.remove);
-
+router.get("/:id/participants", EventController.getEventParticipants);
 
 router.put("/:id/block", EventController.block);
 router.put("/:id/unblock", EventController.unblock);

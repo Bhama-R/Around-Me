@@ -19,22 +19,19 @@ async function getEventById(id) {
   const event = await Event.findById(id)
     .populate("category")
     .populate("createdBy", "name email");
-    console.log(event);
-
-  if (!event) throw new Error("Event not found");
-
-  // Fetch participants (from Interest collection)
-  const interests = await InterestService.getInterests({ eventId: id });
-
-  return {
-    ...event.toObject(),
-    participants: interests.map((i) => ({
-      user: i.userId,
-      status: i.status,
-      payment: i.payment,
-    })),
-  };
+  return event; 
 }
+
+async function getEventParticipants(eventId) {
+  const interests = await InterestService.getInterests({ eventId });
+
+  return interests.map((i) => ({
+    user: i.userId,       
+    status: i.status,     
+    payment: i.payment,   
+  }));
+}
+
 
 // Update event
 async function updateEvent(id, data) {
@@ -148,6 +145,7 @@ module.exports = {
   createEvent,
   getEvents,
   getEventById,
+  getEventParticipants,
   updateEvent,
   deleteEvent,
   blockEvent,
