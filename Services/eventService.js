@@ -78,7 +78,7 @@ async function applyForEvent(eventId, participant) {
 
   // Restrictions
   if (event.restrictions?.gender && participant.gender !== event.restrictions.gender)
-    throw new Error(`Event restricted to ${event.restrictions.gender} participants`);
+    throw new Error(`Event allows to ${event.restrictions.gender} participants only`);
 
   if (event.restrictions?.age) {
     const { min, max } = event.restrictions.age;

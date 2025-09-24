@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const Category = require ('../Schema/categorySchema');
+const Event = require ('../Schema/eventSchema');
 
 async function createCategory(payload){
     try{
@@ -39,20 +40,26 @@ async function updateCategory(id, updates){
     }
 }
 
+async function deactivateCategory(categoryId) {
+  // Mark events as inactive
+  await Event.updateMany(
+    { category: categoryId },
+    { $set: { status: "inactive" } }
+  );
 
-async function deleteCategory(id) {
-    try {
-      return await Category.findByIdAndDelete(id);
-    } catch (err) {
-      console.error("deleteCategory", err);
-      throw err;
-    }
-  }
-  
+  // Mark category as inactive
+  return await Category.findByIdAndUpdate(
+    categoryId,
+    { $set: { status: "inactive" } },
+    { new: true }
+  );
+}
+
+
   module.exports = {
     createCategory,
     getCategories,
     getCategoryById,
     updateCategory,
-    deleteCategory,
+    deactivateCategory,
   };

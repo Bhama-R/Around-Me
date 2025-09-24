@@ -1,4 +1,5 @@
 const categoryServices = require("../Services/categoryService");
+const Event = require("../Schema/eventSchema");
 
 async function createCategory(req, res) {
   try {
@@ -48,14 +49,23 @@ async function updateCategory(req, res) {
   }
 }
 
+
 async function deleteCategory(req, res) {
   try {
-    const id = req.params.id;
-    const category = await categoryServices.deleteCategory(id);
-    if (!category) return res.status(404).json({ msg: "Category not found" });
-    return res.json({ msg: "Category deleted", category });
+    const categoryId = req.params.id;
+    const updatedCategory = await categoryServices.deactivateCategory(categoryId);
+
+    if (!updatedCategory) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    res.json({
+      message: "Category marked inactive, events also inactive",
+      updatedCategory,
+    });
   } catch (err) {
-    return res.status(500).json({ msg: "Error deleting category" });
+    console.error("deleteCategory", err);
+    res.status(500).json({ error: err.message });
   }
 }
 
