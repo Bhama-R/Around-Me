@@ -1,4 +1,5 @@
 require("dotenv").config();
+const cors = require("cors");
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -17,13 +18,15 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended : true}));
 app.use(cookieParser());
- 
+app.use(cors({ origin: "http://localhost:5173" }));  
+
 app.use('/users',userRoutes);
 app.use('/category',categoryRoutes);
 app.use('/fakeReport',fakeReportRoutes);
 app.use('/interest',interestRoutes);
 app.use('/event',eventRoutes);
 app.use('/ateendee',attendeeRoutes);
+
 
 const connectToDB = async () => {
     try{

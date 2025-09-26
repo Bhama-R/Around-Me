@@ -4,7 +4,7 @@ import "./EventCard.css";
 const EventCard = ({ event }) => {
   return (
     <div className="event-card">
-      {/* Image or placeholder */}
+      {/* Image */}
       <div className="event-image">
         {event.attachments && event.attachments.length > 0 ? (
           <img src={event.attachments[0]} alt={event.title} />
@@ -16,7 +16,7 @@ const EventCard = ({ event }) => {
         </span>
       </div>
 
-      {/* Event details */}
+      {/* Content */}
       <div className="event-content">
         <h3 className="event-title">{event.title}</h3>
         <p className="event-description">{event.description}</p>

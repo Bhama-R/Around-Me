@@ -41,7 +41,12 @@ function HomePage() {
           onClick={()=> navigate("/events")}
           >
             Explore Events</button>
-          <button className="create-btn">Create Event</button>
+          <button 
+          className="create-btn"
+          onClick={() => navigate("/createEvents")}
+          >
+            Create Event
+          </button>
         </div>
       </section>
 
@@ -58,11 +63,17 @@ function HomePage() {
         ) : (
           <div className="category-grid">
             {categories.map((cat) => (
-              <div key={cat._id} className="category-card">
-                <div className="icon">{cat.icon}</div>
-                <h3>{cat.name}</h3>
-                <p>{cat.description}</p>
-              </div>
+             <div
+             key={cat._id}
+             className="category-card"
+             onClick={() => navigate("/events", { state: { category: cat.name } })}
+             style={{ cursor: "pointer" }} // make it clickable
+           >
+             <div className="icon">{cat.icon}</div>
+             <h3>{cat.name}</h3>
+             <p>{cat.description}</p>
+           </div>
+           
             ))}
           </div>
         )}
