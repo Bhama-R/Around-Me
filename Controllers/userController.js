@@ -13,12 +13,15 @@ async function register(req, res) {
 
 async function verifyUser(req, res) {
   try {
-    const result = await userService.verifyUser(req.params.token, res);
-    res.json(result);
+    await userService.verifyUser(req.params.token, res);
+
+   
+    return res.redirect("http://localhost:5173/home"); 
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    return res.status(400).send("Verification failed: " + err.message);
   }
 }
+
 
 async function login(req, res) {
   try {
@@ -28,6 +31,16 @@ async function login(req, res) {
     res.status(400).json({ error: err.message });
   }
 }
+
+async function resendVerification(req, res) {
+  try {
+    const result = await userService.resendVerification(req.body.email);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
 
 async function updateProfile(req, res) {
   try {
@@ -69,6 +82,7 @@ module.exports = {
   register,
   verifyUser,
   login,
+  resendVerification,
   updateProfile,
   deactivateAccount,
   getAllUser,

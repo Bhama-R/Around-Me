@@ -7,7 +7,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
 async function sendVerificationEmail(email, token) {
-  const link = `http://localhost:3000/api/users/verify/${token}`;
+  const link = `http://localhost:3000/users/verify/${token}`;
 
   // Create transporter
 
@@ -71,7 +71,6 @@ async function verifyUser(token, res) {
   }
 
   foundUser.status = "active";
-  foundUser.token = undefined;
   foundUser.cookieKey = crypto.randomBytes(16).toString("hex");
   await foundUser.save();
 
@@ -126,14 +125,23 @@ async function resendVerification(email) {
     throw new Error("User already verified, please login");
   }
 
+  // Always generate a new token and update DB
   const newToken = crypto.randomBytes(32).toString("hex");
-  existingUser.token = newToken;
-  existingUser.createdAt = new Date();
+  existingUser.token = newToken;       // overwrite old token
+  existingUser.createdAt = new Date(); // reset time
   await existingUser.save();
+
+  // send fresh mail
   await sendVerificationEmail(existingUser.email, newToken);
 
-  return { status: true, data: { message: "A new verification link has been sent to your email" } };
+  console.log("📩 Resent verification token:", newToken);
+
+  return { 
+    status: true, 
+    data: { message: "A new verification link has been sent to your email" } 
+  };
 }
+
 
 // --- Update Profile (members can edit own profile) ---
 async function updateProfile(userId, updateData) {

@@ -26,6 +26,8 @@ app.use('/fakeReport',fakeReportRoutes);
 app.use('/interest',interestRoutes);
 app.use('/event',eventRoutes);
 app.use('/ateendee',attendeeRoutes);
+app.use("/uploads", express.static("uploads"));
+
 
 
 const connectToDB = async () => {

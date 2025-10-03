@@ -17,6 +17,8 @@ router.use(refreshAuth);
 router.post("/register", registerValidation, validationRes, userController.register);
 router.get("/verify/:token", userController.verifyUser);
 router.post("/login", loginValidation, validationRes, userController.login);
+router.post("/resend-verification", userController.resendVerification);
+
 
 // Protected routes
 router.put("/profile/:id", updateProfileValidation, validationRes, userController.updateProfile);
