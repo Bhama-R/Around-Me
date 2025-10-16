@@ -13,6 +13,7 @@ const EventPage = () => {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [selectedDate, setSelectedDate] = useState("");
+  const [categories, setCategories] =useState([]);
  
   const category = [
   { _id: "All", name: "All" },
@@ -84,49 +85,50 @@ if (selectedCategory !== "All") {
   }, [search, selectedCategory, selectedDate, events]);
 
   // Collect categories dynamically from events
-  const categories = ["All", ...new Set(events.map((e) => e.category?.name).filter(Boolean))];
+ const categoryOptions = ["All", ...new Set(events.map((e) => e.category?.name).filter(Boolean))];
 
   return (
-    <div className="events-container">
-      <h2>Discover Events</h2>
-      <p>Find amazing upcoming events around you</p>
+  <div className="events-container">
+    <h2>Discover Events</h2>
+    <p>Find amazing upcoming events around you</p>
 
-      <div className="filters">
-        <input
-          type="text"
-          placeholder="Search events, locations, categories..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+    <div className="filters">
+      <input
+        type="text"
+        placeholder="Search events, locations, categories..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            {category.map((cat) => (
-              <option key={cat._id} value={cat._id}>
-                {cat.name}
-              </option>
-            ))}
-            </select>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-        />
-      </div>
+      <select
+        value={selectedCategory}
+        onChange={(e) => setSelectedCategory(e.target.value)}
+      >
+        {categoryOptions.map((name, index) => (
+          <option key={index} value={name}>
+            {name}
+          </option>
+        ))}
+      </select>
 
-      <p className="event-count">Showing {filtered.length} events</p>
-
-      <div className="event-grid">
-        {filtered.length > 0 ? (
-          filtered.map((event) => <EventCard key={event._id} event={event} />)
-        ) : (
-          <p>No events found</p>
-        )}
-      </div>
+      <input
+        type="date"
+        value={selectedDate}
+        onChange={(e) => setSelectedDate(e.target.value)}
+      />
     </div>
-  );
+
+    <p className="event-count">Showing {filtered.length} events</p>
+
+    <div className="event-grid">
+      {filtered.length > 0 ? (
+        filtered.map((event) => <EventCard key={event._id} event={event} />)
+      ) : (
+        <p>No events found</p>
+      )}
+    </div>
+  </div>
+);
 };
 
 export default EventPage;

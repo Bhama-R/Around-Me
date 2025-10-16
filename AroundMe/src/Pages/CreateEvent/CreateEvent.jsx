@@ -5,42 +5,39 @@ import "./CreateEvent.css";
 
 export default function CreateEvent() {
   const navigate = useNavigate();
-  const userId = localStorage.getItem("userId"); // store logged-in user's ObjectId
+  const userId = localStorage.getItem("userId");
+  const userName = localStorage.getItem("userName"); 
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
+    createdBy: userId, 
     startDate: "",
     endDate: "",
     capacity: "",
     foodPreference: "",
     fee: "",
-    // location
     city: "",
     address: "",
     mapLink: "",
-    // restrictions
     gender: "",
     ageMin: "",
     ageMax: "",
     place: "",
-    // payment
     accountNumber: "",
     upiId: "",
     ifscCode: "",
-    // agenda (array of time+title)
     agenda: [{ time: "", title: "" }],
-    // contacts (array of name+phone)
     contacts: [{ name: "", phone: "" }],
-    // parking
     parkingAvailable: "",
     parkingSpace: "",
   });
 
   const [categories, setCategories] = useState([]);
-  const [image, setImage] = useState(null); 
-  const [attachments, setAttachments] = useState([]); 
+  const [image, setImage] = useState(null);
+  const [attachments, setAttachments] = useState([]);
+
   useEffect(() => {
     axios
       .get("http://localhost:3000/category/categories")
@@ -60,6 +57,7 @@ export default function CreateEvent() {
       [e.target.name]: e.target.value,
     }));
   };
+
 
   // handle array fields
   const handleAgendaChange = (index, e) => {
@@ -137,7 +135,7 @@ export default function CreateEvent() {
       if (image) form.append("image", image);
       attachments.forEach((file) => form.append("attachments", file));
 
-      await axios.post("http://localhost:3000/event/", form, {
+      await axios.post("http://localhost:3000/event", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -151,7 +149,7 @@ export default function CreateEvent() {
   return (
     <div className="create-event-container">
       <div className="header">
-        <button className="back-btn" onClick={() => navigate("/manage-events")}>
+        <button className="back-btn" onClick={() => navigate("/home")}>
           ← Back
         </button>
         <div>
@@ -180,6 +178,16 @@ export default function CreateEvent() {
                 ))}
               </select>
             </div>
+           <div className="form-group">
+              <label>Created By</label>
+              <input
+                type="text"
+                value={userName || "Unknown User"}
+                readOnly
+              />
+            </div>
+
+
           </div>
           <div className="form-group">
             <label>Description*</label>
