@@ -27,13 +27,19 @@ export default function CreateEvent() {
     address: "",
     mapLink: "",
   },
+  restrictions: {
     gender: "",
-    ageMin: "",
-    ageMax: "",
+    age: {
+    min: "",
+    max: "",
+    },
     place: "",
-    accountNumber: "",
-    upiId: "",
-    ifscCode: "",
+  },
+    paymentDetails: {
+      AccountNumber: "",
+      UPIID: "",
+      IFSCcode: "",
+    },
     agenda: [{ time: "", title: "" }],
     contacts: [{ name: "", phone: "" }],
     parkingAvailable: "",
@@ -303,51 +309,81 @@ export default function CreateEvent() {
           </div>
 
           {/* Restrictions */}
-          <div className="card">
-            <h2>Restrictions</h2>
-            <div className="grid">
-              <div className="form-group">
-                <label>Gender</label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                >
-                  <option value="">Any</option>
-                  <option value="male">Male Only</option>
-                  <option value="female">Female Only</option>
-                  <option value="trans">Trans</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Age Min</label>
-                <input
-                  type="number"
-                  name="ageMin"
-                  value={formData.ageMin}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="form-group">
-                <label>Age Max</label>
-                <input
-                  type="number"
-                  name="ageMax"
-                  value={formData.ageMax}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Place Restriction</label>
-              <input
-                type="text"
-                name="place"
-                value={formData.place}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
+<div className="card">
+  <h2>Restrictions</h2>
+  <div className="grid">
+    <div className="form-group">
+      <label>Gender</label>
+      <select
+        name="gender"
+        value={formData.restrictions.gender}
+        onChange={(e) =>
+          setFormData((prev) => ({
+            ...prev,
+            restrictions: { ...prev.restrictions, gender: e.target.value },
+          }))
+        }
+      >
+        <option value="">Any</option>
+        <option value="male">Male Only</option>
+        <option value="female">Female Only</option>
+        <option value="trans">Trans</option>
+      </select>
+    </div>
+
+    <div className="form-group">
+      <label>Age Min</label>
+      <input
+        type="number"
+        name="ageMin"
+        value={formData.restrictions.age.min}
+        onChange={(e) =>
+          setFormData((prev) => ({
+            ...prev,
+            restrictions: {
+              ...prev.restrictions,
+              age: { ...prev.restrictions.age, min: e.target.value },
+            },
+          }))
+        }
+      />
+    </div>
+
+    <div className="form-group">
+      <label>Age Max</label>
+      <input
+        type="number"
+        name="ageMax"
+        value={formData.restrictions.age.max}
+        onChange={(e) =>
+          setFormData((prev) => ({
+            ...prev,
+            restrictions: {
+              ...prev.restrictions,
+              age: { ...prev.restrictions.age, max: e.target.value },
+            },
+          }))
+        }
+      />
+    </div>
+  </div>
+
+  <div className="form-group">
+    <label>Place Restriction</label>
+    <input
+      type="text"
+      name="place"
+      value={formData.restrictions.place}
+      onChange={(e) =>
+        setFormData((prev) => ({
+          ...prev,
+          restrictions: { ...prev.restrictions, place: e.target.value },
+        }))
+      }
+    />
+  </div>
+</div>
+
 
           {/* Payment Details */}
           <div className="card">
@@ -368,8 +404,8 @@ export default function CreateEvent() {
                 <label>Account Number</label>
                 <input
                   type="text"
-                  name="accountNumber"
-                  value={formData.accountNumber}
+                  name="AccountNumber"
+                  value={formData.paymentDetails.AccountNumber}
                   onChange={handleChange}
                 />
               </div>
@@ -377,8 +413,8 @@ export default function CreateEvent() {
                 <label>UPI ID</label>
                 <input
                   type="text"
-                  name="upiId"
-                  value={formData.upiId}
+                  name="UPIID"
+                  value={formData.paymentDetails.UPIID}
                   onChange={handleChange}
                 />
               </div>
@@ -386,8 +422,8 @@ export default function CreateEvent() {
                 <label>IFSC Code</label>
                 <input
                   type="text"
-                  name="ifscCode"
-                  value={formData.ifscCode}
+                  name="IFSCcode"
+                  value={formData.paymentDetails.IFSCcode}
                   onChange={handleChange}
                 />
               </div>
