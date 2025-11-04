@@ -12,29 +12,28 @@ export default function CreateEvent() {
   console.log("👤 Logged-in User ID:", userId);
   console.log("👤 Logged-in Role:", userRole);
 
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
-    createdBy: userId, 
+    createdBy: userId,
     startDate: "",
     endDate: "",
     capacity: "",
     foodPreference: "",
     fee: "",
-   location: {
-    city: "",
-    address: "",
-    mapLink: "",
-  },
-  restrictions: {
-    gender: "",
-    age: {
-    min: "",
-    max: "",
+    location: {
+      city: "",
+      address: "",
+      mapLink: "",
     },
-    place: "",
-  },
+    restrictions: {
+      gender: "",
+      ageMin: "",
+      ageMax: "",
+      place: "",
+    },
     paymentDetails: {
       AccountNumber: "",
       UPIID: "",
@@ -77,28 +76,55 @@ export default function CreateEvent() {
       .catch((err) => console.error("Error fetching categories:", err));
   }, []);
 
-  // ✅ Input Handlers
-  const handleChange = (e) =>
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  // ✅ Handle top-level + nested fields
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
+    // Restrictions
+    if (["gender", "ageMin", "ageMax", "place"].includes(name)) {
+      setFormData((prev) => ({
+        ...prev,
+        restrictions: { ...prev.restrictions, [name]: value },
+      }));
+    }
+    // Payment details
+    else if (["AccountNumber", "UPIID", "IFSCcode"].includes(name)) {
+      setFormData((prev) => ({
+        ...prev,
+        paymentDetails: { ...prev.paymentDetails, [name]: value },
+      }));
+    }
+    // Location
+    else if (["city", "address", "mapLink"].includes(name)) {
+      setFormData((prev) => ({
+        ...prev,
+        location: { ...prev.location, [name]: value },
+      }));
+    }
+    // Others
+    else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  // ✅ Agenda handlers
   const handleAgendaChange = (i, e) => {
     const updated = [...formData.agenda];
     updated[i][e.target.name] = e.target.value;
     setFormData({ ...formData, agenda: updated });
   };
-
   const addAgenda = () =>
     setFormData({
       ...formData,
       agenda: [...formData.agenda, { time: "", title: "" }],
     });
 
+  // ✅ Contacts
   const handleContactsChange = (i, e) => {
     const updated = [...formData.contacts];
     updated[i][e.target.name] = e.target.value;
     setFormData({ ...formData, contacts: updated });
   };
-
   const addContact = () =>
     setFormData({
       ...formData,
@@ -140,7 +166,6 @@ export default function CreateEvent() {
       await axios.post("http://localhost:3000/event", finalData, {
         headers: { "Content-Type": "application/json" },
       });
-
       alert("✅ Event created successfully!");
       navigate("/events");
     } catch (err) {
@@ -151,7 +176,6 @@ export default function CreateEvent() {
 
   return (
     <div className="create-event-page">
-
       <div className="create-event-container">
         <div className="create-event-header">
           <button className="back-btn" onClick={() => navigate("/home")}>
@@ -164,7 +188,7 @@ export default function CreateEvent() {
         </div>
 
         <form onSubmit={handleSubmit} className="event-form">
-          {/* Basic Information */}
+          {/* Basic Info */}
           <div className="card">
             <h2>Basic Information</h2>
             <div className="grid">
@@ -178,7 +202,6 @@ export default function CreateEvent() {
                   required
                 />
               </div>
-
               <div className="form-group">
                 <label>Category*</label>
                 <select
@@ -196,7 +219,6 @@ export default function CreateEvent() {
                 </select>
               </div>
             </div>
-
             <div className="form-group">
               <label>Description*</label>
               <textarea
@@ -247,35 +269,30 @@ export default function CreateEvent() {
             <h2>Location</h2>
             <div className="form-group">
               <label>City*</label>
-                   <select
-          name="city"
-          value={formData.location.city}
-          onChange={(e) =>
-        setFormData((prev) => ({
-        ...prev,
-        location: { ...prev.location, city: e.target.value },
-      }))
-      }
-          required
-        >
-          <option value="">Select your city</option>
-          <option value=" Kochi"> Kochi</option>
-          <option value="Fort Kochi">Fort Kochi</option>
-          <option value="Mattancherry">Mattancherry</option>
-          <option value="Marine Drive">Marine Drive</option>
-          <option value="Ernakulam">Ernakulam</option>
-          <option value="Kaloor">Kaloor</option>
-          <option value="Edappally">Edappally</option>
-          <option value="Vyttila">Vyttila</option>
-          <option value="Kakkanad">Kakkanad</option>
-          <option value="Thrippunithura">Thrippunithura</option>
-          <option value="Palarivattom">Palarivattom</option>
-          <option value="Panampilly Nagar">Panampilly Nagar</option>
-          <option value="Thevara">Thevara</option>
-          <option value="Willingdon Island">Willingdon Island</option>
-          <option value="Kadavanthra">Kadavanthra</option>
-          <option value="Aluva">Aluva</option>
-        </select>
+              <select
+                name="city"
+                value={formData.location.city}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select your city</option>
+                <option value="Kochi">Kochi</option>
+                <option value="Fort Kochi">Fort Kochi</option>
+                <option value="Mattancherry">Mattancherry</option>
+                <option value="Marine Drive">Marine Drive</option>
+                <option value="Ernakulam">Ernakulam</option>
+                <option value="Kaloor">Kaloor</option>
+                <option value="Edappally">Edappally</option>
+                <option value="Vyttila">Vyttila</option>
+                <option value="Kakkanad">Kakkanad</option>
+                <option value="Thrippunithura">Thrippunithura</option>
+                <option value="Palarivattom">Palarivattom</option>
+                <option value="Panampilly Nagar">Panampilly Nagar</option>
+                <option value="Thevara">Thevara</option>
+                <option value="Willingdon Island">Willingdon Island</option>
+                <option value="Kadavanthra">Kadavanthra</option>
+                <option value="Aluva">Aluva</option>
+              </select>
             </div>
             <div className="form-group">
               <label>Address</label>
@@ -283,13 +300,7 @@ export default function CreateEvent() {
                 type="text"
                 name="address"
                 value={formData.location.address}
-                    onChange={(e) =>
-      setFormData((prev) => ({
-        ...prev,
-        location: { ...prev.location, address: e.target.value },
-      }))
-    }
-
+                onChange={handleChange}
               />
             </div>
             <div className="form-group">
@@ -298,98 +309,63 @@ export default function CreateEvent() {
                 type="url"
                 name="mapLink"
                 value={formData.location.mapLink}
-                  onChange={(e) =>
-      setFormData((prev) => ({
-        ...prev,
-        location: { ...prev.location, mapLink: e.target.value },
-      }))
-    }
+                onChange={handleChange}
               />
             </div>
           </div>
 
           {/* Restrictions */}
-<div className="card">
-  <h2>Restrictions</h2>
-  <div className="grid">
-    <div className="form-group">
-      <label>Gender</label>
-      <select
-        name="gender"
-        value={formData.restrictions.gender}
-        onChange={(e) =>
-          setFormData((prev) => ({
-            ...prev,
-            restrictions: { ...prev.restrictions, gender: e.target.value },
-          }))
-        }
-      >
-        <option value="">Any</option>
-        <option value="male">Male Only</option>
-        <option value="female">Female Only</option>
-        <option value="trans">Trans</option>
-      </select>
-    </div>
-
-    <div className="form-group">
-      <label>Age Min</label>
-      <input
-        type="number"
-        name="ageMin"
-        value={formData.restrictions.age.min}
-        onChange={(e) =>
-          setFormData((prev) => ({
-            ...prev,
-            restrictions: {
-              ...prev.restrictions,
-              age: { ...prev.restrictions.age, min: e.target.value },
-            },
-          }))
-        }
-      />
-    </div>
-
-    <div className="form-group">
-      <label>Age Max</label>
-      <input
-        type="number"
-        name="ageMax"
-        value={formData.restrictions.age.max}
-        onChange={(e) =>
-          setFormData((prev) => ({
-            ...prev,
-            restrictions: {
-              ...prev.restrictions,
-              age: { ...prev.restrictions.age, max: e.target.value },
-            },
-          }))
-        }
-      />
-    </div>
-  </div>
-
-  <div className="form-group">
-    <label>Place Restriction</label>
-    <input
-      type="text"
-      name="place"
-      value={formData.restrictions.place}
-      onChange={(e) =>
-        setFormData((prev) => ({
-          ...prev,
-          restrictions: { ...prev.restrictions, place: e.target.value },
-        }))
-      }
-    />
-  </div>
-</div>
-
+          <div className="card">
+            <h2>Restrictions</h2>
+            <div className="grid">
+              <div className="form-group">
+                <label>Gender</label>
+                <select
+                  name="gender"
+                  value={formData.restrictions.gender}
+                  onChange={handleChange}
+                >
+                  <option value="">Any</option>
+                  <option value="male">Male Only</option>
+                  <option value="female">Female Only</option>
+                  <option value="trans">Trans</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Age Min</label>
+                <input
+                  type="number"
+                  name="ageMin"
+                  value={formData.restrictions.ageMin}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-group">
+                <label>Age Max</label>
+                <input
+                  type="number"
+                  name="ageMax"
+                  value={formData.restrictions.ageMax}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Place Restriction</label>
+              <input
+                type="text"
+                name="place"
+                value={formData.restrictions.place}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
 
           {/* Payment Details */}
           <div className="card">
-            <h2> Fees & Payment Details</h2>
-             <div className="grid">
-               <div className="form-group">
+            <h2>Fees & Payment Details</h2>
+            <div className="grid">
+              <div className="form-group">
                 <label>Fee</label>
                 <input
                   type="number"
@@ -398,7 +374,7 @@ export default function CreateEvent() {
                   onChange={handleChange}
                 />
               </div>
-             </div>
+            </div>
             <div className="grid">
               <div className="form-group">
                 <label>Account Number</label>
@@ -513,14 +489,10 @@ export default function CreateEvent() {
           </div>
           <div className="form-group">
             <label>Attachments</label>
-            <input
-              type="file"
-              multiple
-              onChange={handleAttachmentsChange}
-            />
+            <input type="file" multiple onChange={handleAttachmentsChange} />
           </div>
 
-          {/* Food & Fee */}
+          {/* Food */}
           <div className="card">
             <h2>Food</h2>
             <div className="grid">
