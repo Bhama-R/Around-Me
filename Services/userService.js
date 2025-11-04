@@ -3,43 +3,42 @@ const Event = require("../Schema/eventSchema");
 const Interest = require("../Schema/interestSchema");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-
 const nodemailer = require("nodemailer");
 
+/* ======================================================
+   📧 Send Verification Email
+====================================================== */
 async function sendVerificationEmail(email, token) {
   const link = `http://localhost:3000/users/verify/${token}`;
 
-  // Create transporter
-
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 587,              
-    secure: false,          
+    port: 587,
+    secure: false, // use true for 465 with SSL
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,   
+      pass: process.env.EMAIL_PASS,
+    },
+     tls: {
+      rejectUnauthorized: false, 
     },
   });
 
-  // Email options
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
     subject: "Verify your account",
-    html: `<p>Click the link to verify your account:</p>
+    html: `<p>Click below to verify your account:</p>
            <a href="${link}">${link}</a>`,
   };
 
-  // Send email
   await transporter.sendMail(mailOptions);
-
   console.log(`📩 Verification email sent to ${email}`);
 }
 
-//  USER SERVICE FUNCTIONS
-
-
-// Register 
+/* ======================================================
+   📝 REGISTER USER
+====================================================== */
 async function register(userData) {
   const existing = await User.findOne({ email: userData.email });
   if (existing) throw new Error("User already registered");
@@ -48,8 +47,8 @@ async function register(userData) {
 
   const newUser = new User({
     ...userData,
-    role: "member", 
-    status: "blocked", 
+    role: "member",
+    status: "blocked",
     token,
     createdAt: new Date(),
   });
@@ -57,10 +56,15 @@ async function register(userData) {
   await newUser.save();
   await sendVerificationEmail(newUser.email, token);
 
-  return { status: true, data: { message: "Check your email for the verification link" } };
+  return {
+    status: true,
+    data: { message: "Check your email for the verification link" },
+  };
 }
 
-// --- Verify user (email token -> generate secure cookie) ---
+/* ======================================================
+   ✅ VERIFY USER (Email Token)
+====================================================== */
 async function verifyUser(token, res) {
   const foundUser = await User.findOne({ token });
   if (!foundUser) throw new Error("Invalid token");
@@ -80,43 +84,55 @@ async function verifyUser(token, res) {
     { expiresIn: "7d" }
   );
 
-  // Set secure cookie
+  // Set auth cookie
   res.cookie("auth", loginToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: "strict",
+    secure: false, 
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  return { status: true, data: { user: foundUser } };
+   return res.redirect("http://localhost:5173/home");
 }
 
-// --- Login (only email, resend link if not active) ---
+/* ======================================================
+   🔐 LOGIN (Email Only — Always Sends Verification Link)
+====================================================== */
 async function login(email, res) {
+  console.log("📩 Login request received for:", email);
+
   const foundUser = await User.findOne({ email });
   if (!foundUser) throw new Error("User not found");
 
-  if (foundUser.status !== "active") {
-    return await resendVerification(email);
+  // ✅ Always issue a new token, even if verified
+  const newToken = crypto.randomBytes(32).toString("hex");
+  foundUser.token = newToken;
+  foundUser.createdAt = new Date();
+  await foundUser.save();
+
+  console.log("✅ Token updated in DB:", newToken);
+
+  try {
+    await sendVerificationEmail(foundUser.email, newToken);
+    console.log("✅ Verification email sent to:", foundUser.email);
+  } catch (err) {
+    console.error("❌ Email send error:", err);
+    throw new Error("Failed to send verification email");
   }
 
-  const token = jwt.sign(
-    { id: foundUser._id, role: foundUser.role },
-    process.env.JWT_SECRET || "secret",
-    { expiresIn: "7d" }
-  );
-
-  res.cookie("auth", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
-  return { status: true, data: { user: foundUser } };
+  return {
+    status: true,
+    data: {
+      message:
+        "A new verification link has been sent to your email. Please click it to log in.",
+    },
+  };
 }
 
-// --- Resend verification link ---
+
+/* ======================================================
+   🔄 RESEND VERIFICATION EMAIL
+====================================================== */
 async function resendVerification(email) {
   const existingUser = await User.findOne({ email });
   if (!existingUser) throw new Error("User not found");
@@ -125,43 +141,45 @@ async function resendVerification(email) {
     throw new Error("User already verified, please login");
   }
 
-  // Always generate a new token and update DB
   const newToken = crypto.randomBytes(32).toString("hex");
-  existingUser.token = newToken;       // overwrite old token
-  existingUser.createdAt = new Date(); // reset time
+  existingUser.token = newToken;
+  existingUser.createdAt = new Date();
   await existingUser.save();
 
-  // send fresh mail
   await sendVerificationEmail(existingUser.email, newToken);
-
   console.log("📩 Resent verification token:", newToken);
 
-  return { 
-    status: true, 
-    data: { message: "A new verification link has been sent to your email" } 
+  return {
+    status: true,
+    data: { message: "A new verification link has been sent to your email" },
   };
 }
 
-
-// --- Update Profile (members can edit own profile) ---
+/* ======================================================
+   ✏️ UPDATE PROFILE
+====================================================== */
 async function updateProfile(userId, updateData) {
   const updated = await User.findByIdAndUpdate(userId, updateData, { new: true });
   return { status: true, data: updated };
 }
 
-// --- Deactivate Account (withdraw from events, block created events) ---
+/* ======================================================
+   🚫 DEACTIVATE ACCOUNT
+====================================================== */
 async function deactivateAccount(userId) {
   const userDoc = await User.findByIdAndUpdate(userId, { status: "inactive" }, { new: true });
   if (!userDoc) throw new Error("User not found");
 
   const createdEvents = await Event.find({ createdBy: userId });
-  const interests = await Interest.find({ userId })
-    .populate("eventId", "title startDate location status");
+  const interests = await Interest.find({ userId }).populate(
+    "eventId",
+    "title startDate location status"
+  );
 
-  // Block all events created by this user
+  // Block all user-created events
   await Event.updateMany({ createdBy: userId }, { $set: { status: "blocked" } });
 
-  // Withdraw all interests
+  // Withdraw all event interests
   await Interest.updateMany(
     { userId, status: { $in: ["pending", "approved"] } },
     {
@@ -178,14 +196,14 @@ async function deactivateAccount(userId) {
     data: {
       message: "Account deactivated successfully",
       deactivatedUser: userDoc,
-      createdEvents: createdEvents.map(e => ({
+      createdEvents: createdEvents.map((e) => ({
         id: e._id,
         title: e.title,
         startDate: e.startDate,
-        location: e.location.city,
+        location: e.location?.city,
         status: "blocked",
       })),
-      withdrawnInterests: interests.map(i => ({
+      withdrawnInterests: interests.map((i) => ({
         eventId: i.eventId._id,
         title: i.eventId.title,
         startDate: i.eventId.startDate,
@@ -195,34 +213,81 @@ async function deactivateAccount(userId) {
   };
 }
 
-// --- Get all users (admin only) ---
-async function getAllUser() {
-  return { status: true, data: await User.find() };
+/* ======================================================
+   👥 GET ALL USERS (Admin / Manager / Self)
+====================================================== */
+async function getAllUser(currentUser) {
+  let users;
+
+  if (currentUser.role === "admin") {
+    users = await User.find();
+  } else if (currentUser.role === "event_manager") {
+    users = await User.find().select("name email role status");
+  } else {
+    users = await User.find({ _id: currentUser.id }).select("name email role status");
+  }
+
+  return { status: true, data: users };
 }
 
-// --- Update role (admin only: promote member -> event_manager / admin) ---
+/* ======================================================
+   🧩 UPDATE ROLE (Admin only)
+====================================================== */
 async function updateRole(userId, role) {
   if (!["member", "event_manager", "admin"].includes(role)) {
     throw new Error("Invalid role");
   }
-  return { status: true, data: await User.findByIdAndUpdate(userId, { role }, { new: true }) };
+  const updatedUser = await User.findByIdAndUpdate(userId, { role }, { new: true });
+  return { status: true, data: updatedUser };
 }
 
-/**
- * ========================
- *  MIDDLEWARE
- * ========================
- */
+/* ======================================================
+   🚫 SUSPEND USER (Admin only)
+====================================================== */
+async function suspendUser(userId) {
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { status: "suspended" },
+    { new: true }
+  );
+  if (!user) throw new Error("User not found");
+  return { status: true, message: "User suspended successfully", data: user };
+}
 
-// --- Sliding session (refresh cookie on each request) ---
+/* ======================================================
+   ✅ ACTIVATE USER (Admin only)
+====================================================== */
+async function activateUser(userId) {
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { status: "active" },
+    { new: true }
+  );
+  if (!user) throw new Error("User not found");
+  return { status: true, message: "User activated successfully", data: user };
+}
+
+/* ======================================================
+   🛡️ MIDDLEWARE
+====================================================== */
+
 function refreshAuth(req, res, next) {
-  const token = req.cookies?.auth;
-  if (!token) return next();
+  const token = req.cookies?.auth ||
+    (req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null);
+  if (!token) {
+    console.log("❌ No auth cookie found");
+    return next();
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
 
-    // Re-issue token (sliding session)
+  req.user = decoded;
+
+    // Reissue new token for sliding session
     const newToken = jwt.sign(
       { id: decoded.id, role: decoded.role },
       process.env.JWT_SECRET || "secret",
@@ -231,27 +296,50 @@ function refreshAuth(req, res, next) {
 
     res.cookie("auth", newToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: "strict",
+      secure: false, // ⚠️ keep false for localhost
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    req.user = decoded; // session auto set
+    req.user = decoded;
+    next();
   } catch (err) {
-    console.log("Token expired or invalid");
+    console.log("❌ Token verification failed:", err.message);
+    return res.status(401).json({ error: "Invalid or expired token" });
   }
-
-  next();
 }
 
-// --- Role-based access control middleware ---
+
 function requireRole(...roles) {
   return (req, res, next) => {
+    console.log("🧭 Checking role:", req.user);
     if (!req.user || !roles.includes(req.user.role)) {
+      console.log("❌ Access denied. Allowed:", roles, "Found:", req.user?.role);
       return res.status(403).json({ error: "Forbidden" });
     }
     next();
   };
+}
+
+/* ======================================================
+   🔍 CHECK AUTH SERVICE
+====================================================== */
+async function checkAuth(req) {
+  const token =
+    req.cookies?.auth ||
+    (req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null);
+
+  if (!token) throw new Error("No authentication token found");
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
+    return { status: true, user: decoded };
+  } catch (err) {
+    throw new Error("Invalid or expired token");
+  }
 }
 
 module.exports = {
@@ -263,6 +351,9 @@ module.exports = {
   deactivateAccount,
   getAllUser,
   updateRole,
+  suspendUser,
+  activateUser,
   refreshAuth,
   requireRole,
+  checkAuth
 };

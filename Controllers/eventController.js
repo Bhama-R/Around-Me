@@ -1,9 +1,21 @@
 const EventService = require("../Services/eventService");
-const { getParticipantsByEvent } = require("../Services/interestService");
+const InterestService= require("../Services/interestService");
+const Event = require("../Schema/eventSchema");
+
+
 // Create
 async function create(req, res) {
   try {
-    const event = await EventService.createEvent(req.body);
+
+        const { image, attachments, ...rest } = req.body;
+
+    const eventData = {
+      ...rest,
+      image: image || null,
+      attachments: attachments || [],
+    };
+
+    const event = await EventService.createEvent(eventData);
     res.status(201).json(event);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -21,24 +33,49 @@ async function getAll(req, res) {
 }
 
 // Get one
-async function getOne(req, res) {
+async function getEventById(req, res) {
   try {
-    const event = await EventService.getEventById(req.params.id);
-    if (!event) return res.status(404).json({ message: "Event not found" });
+    const id = req.params.id;
+    const event = await EventService.getEventById(id);
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
     res.json(event);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
+  }
+}
+
+  async function fetchEventsByCategory (req, res)  {
+  try {
+    const data = await getEventsByCategory();
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 }
 // get attendee only
 async function getEventParticipants(req, res) {
   try {
-    const participants = await EventService.getEventParticipants(req.params.id);
-    if (!participants.length) {
-      return res.status(404).json({ message: "No participants found for this event" });
-    }
-    res.json(participants); // just participants
+    const eventId = req.params.id;
+    const data = await EventService.getEventParticipants(eventId);
+
+    // ✅ Always return empty array instead of 404
+    res.json(data || { event: null, participants: [] });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function getEventsByCreator(req, res) {
+  try {
+    const userId = req.params.userId;
+    const events = await EventService.getEventsWithParticipantsByUser(userId);
+    res.status(200).json(events);
+  } catch (err) {
+    console.error("❌ Error fetching events:", err);
     res.status(500).json({ error: err.message });
   }
 }
@@ -52,6 +89,7 @@ async function update(req, res) {
     res.status(400).json({ error: err.message });
   }
 }
+
 
 // Delete
 async function remove(req, res) {
@@ -69,6 +107,7 @@ async function block(req, res) {
   try {
     const event = await EventService.blockEvent(req.params.id);
     res.json(event);
+    console.log("🧩 Blocking event with ID:", id);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -119,17 +158,52 @@ async function fetchEventParticipants(req, res) {
   }
 }
 
+async function getMyCreatedEvents(req, res) {
+  try {
+    const { userId } = req.params;
+    const events = await EventService.getEventsByCreator(userId);
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch created events" });
+  }
+}
+
+// ✅ Approve or Reject participant (interest)
+async function updateInterestStatus(req, res) {
+  try {
+    const { eventId, participantId } = req.params;
+    const { status } = req.body; // approved / rejected
+
+    const updatedInterest = await InterestService.updateInterestStatus(participantId, status);
+
+    if (!updatedInterest) {
+      return res.status(404).json({ message: "Interest not found" });
+    }
+
+    res.json({ message: `Participant ${status} successfully`, updatedInterest });
+  } catch (err) {
+    console.error("updateInterestStatus:", err);
+    res.status(500).json({ error: "Failed to update interest status" });
+  }
+}
+
+
+
 
 module.exports = {
   create,
   getAll,
-  getOne,
+  getEventById,
+  fetchEventsByCategory,
   getEventParticipants,
+   getEventsByCreator,
   update,
   remove,
   block,
   unblock,
   addParticipant,
   removeParticipant,
-  fetchEventParticipants
+  fetchEventParticipants,
+  getMyCreatedEvents,
+  updateInterestStatus
 };

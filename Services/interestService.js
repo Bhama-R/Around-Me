@@ -1,5 +1,3 @@
-const express = require("express");
-const mongoose = require("mongoose");
 const Interest = require("../Schema/interestSchema");
 
 // Create interest (user expresses interest in event)
@@ -18,7 +16,7 @@ async function createInterest(payload) {
 async function getInterests(filter = {}) {
   try {
     return await Interest.find(filter)
-      .populate("eventId", "title description startDate")
+      .populate("eventId", "title description startDate location category createdBy")
       .populate("userId", "name email");
   } catch (err) {
     console.error("getInterests", err);
@@ -38,12 +36,17 @@ async function getInterestById(id) {
   }
 }
 
-// Update interest (status or payment info)
-async function updateInterest(id, updates) {
+// Update status (approve / reject)
+async function updateInterestStatus(interestId, status) {
   try {
-    return await Interest.findByIdAndUpdate(id, updates, { new: true });
+    const updated = await Interest.findByIdAndUpdate(
+      interestId,
+      { status },
+      { new: true }
+    ).populate("userId", "name email phone");
+    return updated;
   } catch (err) {
-    console.error("updateInterest", err);
+    console.error("updateInterestStatus", err);
     throw err;
   }
 }
@@ -61,6 +64,8 @@ async function withdrawInterest(id, reason) {
     throw err;
   }
 }
+
+// Get participants by event
 async function getParticipantsByEvent(eventId) {
   try {
     const interests = await Interest.find({ eventId, status: "applied" })
@@ -69,15 +74,12 @@ async function getParticipantsByEvent(eventId) {
 
     if (!interests.length) return null;
 
-    // Extract event info (same for all participants)
     const eventInfo = {
       title: interests[0].eventId.title,
       startDate: interests[0].eventId.startDate,
     };
 
-    // Extract users
     const users = interests.map((i) => i.userId);
-
     return { event: eventInfo, participants: users };
   } catch (err) {
     console.error("getParticipantsByEvent", err);
@@ -85,13 +87,24 @@ async function getParticipantsByEvent(eventId) {
   }
 }
 
+// ✅ Get all interested events of a user
+async function getMyInterestedEvents(userId) {
+  try {
+    return await Interest.find({ userId })
+      .populate("eventId", "title description image startDate fee")
+      .lean();
+  } catch (err) {
+    console.error("getMyInterestedEvents", err);
+    throw err;
+  }
+}
 
 module.exports = {
   createInterest,
   getInterests,
   getInterestById,
-  updateInterest,
+  updateInterestStatus,
   withdrawInterest,
-  getParticipantsByEvent
+  getParticipantsByEvent,
+  getMyInterestedEvents,
 };
- 

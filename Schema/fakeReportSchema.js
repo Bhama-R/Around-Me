@@ -10,10 +10,21 @@ const fakeReportSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId, 
         ref: "User" 
     },
-    reason: String,
+    reason: {
+      type:String,
+      default: null
+    },
+    blockreason: {
+      type: String,
+      default: null
+    },
     actionedBy: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: "User" 
+    },
+     isBlocked: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

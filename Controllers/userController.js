@@ -14,14 +14,14 @@ async function register(req, res) {
 async function verifyUser(req, res) {
   try {
     await userService.verifyUser(req.params.token, res);
-
-   
-    return res.redirect("http://localhost:5173/home"); 
+    // ✅ On success → redirect to Home
+    return res.redirect("http://localhost:5173/home");
   } catch (err) {
-    return res.status(400).send("Verification failed: " + err.message);
+    console.log("❌ Verification failed:", err.message);
+    // ✅ If expired/invalid → redirect to login with query param
+    return res.redirect("http://localhost:5173/login?error=expired");
   }
 }
-
 
 async function login(req, res) {
   try {
@@ -62,12 +62,13 @@ async function deactivateAccount(req, res) {
 
 async function getAllUser(req, res) {
   try {
-    const result = await userService.getAllUser();
+    const result = await userService.getAllUser(req.user);
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 }
+
 
 async function updateRole(req, res) {
   try {
@@ -75,6 +76,33 @@ async function updateRole(req, res) {
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+}
+
+async function suspendUser(req, res) {
+  try {
+    const result = await userService.suspendUser(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
+async function activateUser(req, res) {
+  try {
+    const result = await userService.activateUser(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
+async function checkAuth(req, res) {
+  try {
+    const result = await userService.checkAuth(req);
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(401).json({ status: false, message: err.message });
   }
 }
 
@@ -87,4 +115,7 @@ module.exports = {
   deactivateAccount,
   getAllUser,
   updateRole,
+  suspendUser,
+  activateUser,
+  checkAuth
 };

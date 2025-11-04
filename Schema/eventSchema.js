@@ -68,6 +68,9 @@ const eventSchema = new mongoose.Schema ({
             "non-veg", 
             "jain"], 
             default: "none" },
+    image: {
+       type: String,
+    },
     attachments: [String],
     contacts: [{ 
         name: String, 

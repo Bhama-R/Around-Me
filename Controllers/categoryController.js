@@ -1,5 +1,4 @@
 const categoryServices = require("../Services/categoryService");
-const Event = require("../Schema/eventSchema");
 
 async function createCategory(req, res) {
   try {
@@ -7,13 +6,16 @@ async function createCategory(req, res) {
       name: req.body.name,
       description: req.body.description,
       icon: req.body.icon,
-      status:req.body.status,
-      createdBy: req.body.createdBy, 
+      status: req.body.status || "active",
+      createdBy: req.body.createdBy,
     };
+
     const category = await categoryServices.createCategory(payload);
     return res.status(201).json({ msg: "Category created", category });
   } catch (err) {
-    return res.status(500).json({ msg: "Unable to create category", error: err.message });
+    return res
+      .status(500)
+      .json({ msg: "Unable to create category", error: err.message });
   }
 }
 
@@ -49,7 +51,6 @@ async function updateCategory(req, res) {
   }
 }
 
-
 async function deleteCategory(req, res) {
   try {
     const categoryId = req.params.id;
@@ -69,8 +70,10 @@ async function deleteCategory(req, res) {
   }
 }
 
-module.exports = { createCategory,
-    getCategories, 
-    getCategoryById,
-     updateCategory, 
-     deleteCategory };
+module.exports = {
+  createCategory,
+  getCategories,
+  getCategoryById,
+  updateCategory,
+  deleteCategory,
+};

@@ -7,14 +7,16 @@ const EventCard = ({ event }) => {
 
   return (
     <div className="event-card">
-      <div className="event-image">
-        {event.attachments?.length > 0 ? (
-          <img src={event.attachments[0]} alt={event.title} />
-        ) : (
-          <div className="placeholder">No Image</div>
-        )}
-        <span className="event-category">{event.category?.name || "General"}</span>
-      </div>
+    <div className="event-image">
+  {event.image ? (
+    <img src={event.image} alt={event.title} />
+  ) : event.attachments?.length > 0 ? (
+    <img src={event.attachments[0]} alt={event.title} />
+  ) : (
+    <div className="placeholder">No Image</div>
+  )}
+  <span className="event-category">{event.category?.name || "General"}</span>
+</div>
 
       <div className="event-content">
         <h3 className="event-title">{event.title}</h3>

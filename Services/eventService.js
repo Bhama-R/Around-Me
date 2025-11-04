@@ -2,9 +2,16 @@ const mongoose = require("mongoose");
 const Event = require("../Schema/eventSchema");
 const InterestService = require("./interestService"); 
 
+
 // Create new event
 async function createEvent(data) {
-  return await Event.create(data);
+   // Convert createdBy to ObjectId
+  if (data.createdBy) {
+    data.createdBy = new mongoose.Types.ObjectId(data.createdBy);
+  }
+
+  const event = await Event.create(data);
+  return event;
 }
 
 // Get all events
@@ -16,20 +23,76 @@ async function getEvents(filter = {}) {
 
 // Get event by ID
 async function getEventById(id) {
-  const event = await Event.findById(id)
-    .populate("category")
-    .populate("createdBy", "name email");
-  return event; 
+  try {
+    console.log("🔍 Fetching event by ID:", id); 
+
+    const event = await Event.findById(id)
+      .populate("category")
+      .populate("createdBy", "name email")
+
+    if (!event) {
+      console.log("⚠️ Event not found in DB for ID:", id);
+      return null;
+    }
+
+    console.log("✅ Event fetched successfully from DB:", {
+      title: event.title,
+      contacts: event.contacts,
+      paymentDetails: event.paymentDetails,
+    });
+
+    return event;
+  } catch (err) {
+    console.error("❌ Error fetching event:", err.message);
+    throw err;
+  }
 }
 
-async function getEventParticipants(eventId) {
-  const interests = await InterestService.getInterests({ eventId });
+async function getEventsByCreator(userId) {
+  console.log("Looking up events in DB for:", userId);
+  return await Event.find({ createdBy: userId })
+    .populate("category")
+    .populate("createdBy", "name email");
+}
 
-  return interests.map((i) => ({
-    user: i.userId,       
-    status: i.status,     
-    payment: i.payment,   
-  }));
+ async function getEventsByCategory() {
+  try {
+    const result = await Event.aggregate([
+      {
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 },
+          totalRevenue: { $sum: "$fee" }
+        }
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "_id",
+          foreignField: "_id",
+          as: "categoryInfo"
+        }
+      },
+      {
+        $unwind: "$categoryInfo"
+      },
+      {
+        $project: {
+          categoryName: "$categoryInfo.name",
+          count: 1,
+          totalRevenue: 1
+        }
+      }
+    ]);
+
+    return result;
+  } catch (error) {
+    throw new Error("Error fetching events by category: " + error);
+  }
+};
+
+async function getEventParticipants(eventId) {
+  return await InterestService.getParticipantsByEvent(eventId);
 }
 
 
@@ -51,9 +114,34 @@ async function deleteEvent(id, userId) {
 }
 
 // Block / Unblock event
+// async function blockEvent(id) {
+//   return await Event.findByIdAndUpdate(id, { status: "blocked" }, { new: true });
+// }
+
+// Block / Unblock event
 async function blockEvent(id) {
-  return await Event.findByIdAndUpdate(id, { status: "blocked" }, { new: true });
+  // 1️⃣ Block the event
+  const blockedEvent = await Event.findByIdAndUpdate(
+    id,
+    { status: "blocked" },
+    { new: true }
+  );
+
+  if (!blockedEvent) {
+    throw new Error("Event not found");
+  }
+
+  // 2️⃣ Update all approved interests for this event to pending
+  await Interest.updateMany(
+    { eventId: id, status: "approved" },
+    { $set: { status: "pending" } }
+  );
+
+  console.log(`✅ Updated all approved interests for event ${id} to pending.`);
+
+  return blockedEvent;
 }
+
 
 async function unblockEvent(id) {
   return await Event.findByIdAndUpdate(id, { status: "active" }, { new: true });
@@ -88,7 +176,8 @@ async function applyForEvent(eventId, participant) {
   }
 
  // Restrict to participants from the event's place only
-if (participant.place.trim().toLowerCase() !== event.place.trim().toLowerCase()) {
+if (event.restrictions?.place && participant.place.trim().toLowerCase() !== event.restrictions.place.trim().toLowerCase())
+ {
   throw new Error(`Event is only open to members from ${event.place}`);
 }
 
@@ -141,10 +230,38 @@ async function updatePayment(eventId, userId, paymentData) {
   );
 }
 
+/* ======================================================
+   🧩 Get events created by user (with participants)
+====================================================== */
+async function getEventsWithParticipantsByUser(userId) {
+  // Get all events created by this user
+  const events = await Event.find({ createdBy: userId }).lean();
+
+  // Collect all event IDs
+  const eventIds = events.map((e) => e._id);
+
+  // Get all interests related to those events
+  const interests = await Interest.find({ eventId: { $in: eventIds } })
+    .populate("userId", "name email") // populate participant user details
+    .lean();
+
+  // Attach participants to each event
+  const eventsWithParticipants = events.map((event) => {
+    const participants = interests
+      .filter((i) => i.eventId.toString() === event._id.toString())
+      .map((i) => i.userId); // extract user details
+    return { ...event, participants };
+  });
+
+  return eventsWithParticipants;
+}
+
 module.exports = {
   createEvent,
   getEvents,
   getEventById,
+  getEventsByCreator,
+  getEventsByCategory,
   getEventParticipants,
   updateEvent,
   deleteEvent,
@@ -155,4 +272,5 @@ module.exports = {
   updateParticipation,
   overrideApplication,
   updatePayment,
+  getEventsWithParticipantsByUser,
 };

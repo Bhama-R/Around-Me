@@ -17,31 +17,56 @@ import "./EventDetails.css";
 export default function EventDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
- const userId = localStorage.getItem("userId");
+  const userId = localStorage.getItem("userId");
 
   const [event, setEvent] = useState(null);
   const [activeTab, setActiveTab] = useState("Agenda");
   const [isInterested, setIsInterested] = useState(false);
   const [interestId, setInterestId] = useState(null);
+  const [approvalStatus, setApprovalStatus] = useState(null); // "approved", "rejected", "pending"
   const [showForm, setShowForm] = useState(false);
   const [transaction, setTransaction] = useState({
     transactionId: "",
     paymentMode: "",
     paymentDate: "",
   });
+  const [showFakeReport, setShowFakeReport] = useState(false);
+  const [reportReason, setReportReason] = useState("");
 
+  // 🔹 Fetch event + interest status
   useEffect(() => {
-    if (!id) return;
+    if (!id || !userId) return;
+
     axios
       .get(`http://localhost:3000/event/${id}`)
-      .then((res) => setEvent(res.data))
+      .then((res) => {
+        console.log("🟢 Event fetched:", res.data);
+        setEvent(res.data);
+      })
       .catch((err) => console.error("Error fetching event:", err));
-  }, [id]);
 
+    axios
+      .get(`http://localhost:3000/interest/interested-in/${userId}`)
+      .then((res) => {
+        const interest = res.data.find((i) => i.eventId === id);
+        if (interest) {
+          setIsInterested(true);
+          setInterestId(interest._id);
+          setApprovalStatus(interest.status);
+        }
+      })
+      .catch((err) => console.error("Error fetching interest:", err));
+  }, [id, userId]);
+
+  // 🔹 Express Interest
   const handleExpressInterest = async () => {
-    if (event?.fee && !isInterested) {
+    if (!event) return;
+
+    if (event.fee && !isInterested) {
+      // Requires payment form
       setShowForm(true);
     } else if (!isInterested) {
+      // Free event
       try {
         const res = await axios.post(`http://localhost:3000/interest`, {
           eventId: event._id,
@@ -53,57 +78,90 @@ export default function EventDetailsPage() {
         });
         setIsInterested(true);
         setInterestId(res.data.interest._id);
+        setApprovalStatus("pending");
       } catch (err) {
         console.error("Error expressing interest:", err);
       }
     }
   };
 
+  // 🔹 Payment Form Submission
   const handleSubmit = async () => {
     const { transactionId, paymentMode, paymentDate } = transaction;
-    if (transactionId && paymentMode && paymentDate) {
-      try {
-        const res = await axios.post("http://localhost:3000/interest", {
-          eventId: event._id,
-          userId,
-          transaction: {
-            amount: event.fee,
-            transactionId,
-            paymentMode,
-            paymentDate,
-            paymentStatus: "paid",
-          },
-        });
-        setIsInterested(true);
-        setInterestId(res.data.interest._id);
-        setShowForm(false);
-        setTransaction({ transactionId: "", paymentMode: "", paymentDate: "" });
-      } catch (err) {
-        console.error("Error submitting interest:", err);
-      }
+
+    if (!transactionId || !paymentMode || !paymentDate) {
+      alert("Please fill all payment details.");
+      return;
+    }
+
+    try {
+      const res = await axios.post("http://localhost:3000/interest", {
+        eventId: event._id,
+        userId,
+        transaction: {
+          amount: event.fee,
+          transactionId,
+          paymentMode,
+          paymentDate,
+          paymentStatus: "paid",
+        },
+      });
+      setIsInterested(true);
+      setInterestId(res.data.interest._id);
+      setApprovalStatus("pending");
+      setShowForm(false);
+      setTransaction({ transactionId: "", paymentMode: "", paymentDate: "" });
+    } catch (err) {
+      console.error("Error submitting payment interest:", err);
     }
   };
 
+  // 🔹 Withdraw Interest
   const handleWithdraw = async () => {
     if (!interestId) return;
     try {
       await axios.post(
-        `http://localhost:3000/interest/interest/withdraw/${interestId}`,
+        `http://localhost:3000/interest/withdraw/${interestId}`,
         { reason: "user withdraw interest" }
       );
       setIsInterested(false);
       setInterestId(null);
+      setApprovalStatus(null);
       alert("You have withdrawn your interest.");
     } catch (err) {
       console.error("Error withdrawing interest:", err);
     }
   };
 
+  // 🔹 Fake Event Report
+  const handleFakeReport = async () => {
+    if (!reportReason.trim()) {
+      alert("Please enter a reason.");
+      return;
+    }
+
+    try {
+      await axios.post("http://localhost:3000/fakeReport/report", {
+        eventId: event._id,
+        reportedBy: userId,
+        reason: reportReason,
+      });
+
+      alert("Report submitted successfully.");
+      setShowFakeReport(false);
+      setReportReason("");
+    } catch (err) {
+      console.error("Error submitting fake report:", err);
+      alert("Failed to submit report. Try again.");
+    }
+  };
+
   if (!event) return <div className="loading">Loading event details...</div>;
 
+  // 🔹 Capacity Percentage (avoid NaN)
   const capacity =
-    event.totalCapacity && event.attendees
-      ? Math.round((event.attendees / event.totalCapacity) * 100)
+    event.capacity && event.participants
+      ? Math.round((event.participants.length / event.capacity) * 100)
       : 0;
 
   return (
@@ -116,7 +174,6 @@ export default function EventDetailsPage() {
         <h1 className="site-title">Around Me Events</h1>
       </div>
 
-      {/* Main Content */}
       <div className="content">
         {/* Left Section */}
         <div className="left">
@@ -134,40 +191,35 @@ export default function EventDetailsPage() {
             <span className="event-price">₹{event.fee || 0}</span>
           </div>
 
+          {/* Details */}
           <div className="details-grid">
             <div className="info-box">
               <Calendar className="icon" />
-              <div>
-                <p>
-                  {new Date(event.startDate).toLocaleDateString()} -{" "}
-                  {new Date(event.endDate).toLocaleDateString()}
-                </p>
-              </div>
+              <p>
+                {new Date(event.startDate).toLocaleDateString()} -{" "}
+                {new Date(event.endDate).toLocaleDateString()}
+              </p>
             </div>
 
             <div className="info-box">
               <MapPin className="icon" />
-              <div>
-                <p>{event.location?.city}</p>
-                <p className="text-gray">{event.location?.address}</p>
-              </div>
+              <p>{event.location?.city}</p>
+              <p className="text-gray">{event.location?.address}</p>
             </div>
 
             <div className="info-box">
               <Users className="icon" />
-              <div>
-                <p>{event.capacity} capacity</p>
-              </div>
+              <p>{event.capacity} capacity</p>
             </div>
           </div>
 
-          {/* About Section */}
+          {/* About */}
           <div className="about">
             <h3>About This Event</h3>
             <p>{event.description}</p>
           </div>
 
-          {/* Tabs Section */}
+          {/* Tabs */}
           <div className="tabs">
             {["Agenda", "Participants", "Location", "Requirements"].map(
               (tab) => (
@@ -194,7 +246,6 @@ export default function EventDetailsPage() {
                         <span className="agenda-time">{item.time}</span>
                         <div>
                           <h4>{item.title}</h4>
-                          <p>{item.location}</p>
                         </div>
                       </li>
                     ))
@@ -232,31 +283,45 @@ export default function EventDetailsPage() {
                 <p>
                   <b>City:</b> {event.location?.city}
                 </p>
-                <p>
-                  {/* <b>Venue:</b> {event.location?.venue} */}
-                </p>
+                {event.location?.mapLink && (
+                  <a
+                    href={event.location.mapLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    📍 View on Map
+                  </a>
+                )}
               </div>
             )}
 
-           {activeTab === "Requirements" && (
-          <div>
-            <h3>Requirements</h3>
-            {event.restrictions ? (
-              <ul>
-                <li><b>Gender:</b> {event.restrictions.gender || "Any"}</li>
-                {event.restrictions.age?.min && event.restrictions.age?.max && (
-                  <li><b>Age Range:</b> {event.restrictions.age.min} - {event.restrictions.age.max}</li>
+            {activeTab === "Requirements" && (
+              <div>
+                <h3>Requirements</h3>
+                {event.restrictions ? (
+                  <ul>
+                    <li>
+                      <b>Gender:</b> {event.restrictions.gender || "Any"}
+                    </li>
+                    {event.restrictions.age?.min &&
+                      event.restrictions.age?.max && (
+                        <li>
+                          <b>Age Range:</b>{" "}
+                          {event.restrictions.age.min} -{" "}
+                          {event.restrictions.age.max}
+                        </li>
+                      )}
+                    {event.restrictions.place && (
+                      <li>
+                        <b>Place Restriction:</b> {event.restrictions.place}
+                      </li>
+                    )}
+                  </ul>
+                ) : (
+                  <p>No special requirements listed.</p>
                 )}
-                {event.restrictions.place && (
-                    <li><b>Place Restriction:</b> {event.restrictions.place}</li>
-                  )}
-                </ul>
-              ) : (
-                <p>No special requirements listed.</p>
-              )}
-            </div>
-          )}
-
+              </div>
+            )}
           </div>
         </div>
 
@@ -265,14 +330,16 @@ export default function EventDetailsPage() {
           <div className="card join-card">
             <h3>Join This Event</h3>
 
-            {!isInterested ? (
+            {!isInterested && approvalStatus !== "rejected" && (
               <button className="interest-btn" onClick={handleExpressInterest}>
                 <Heart className="icon" /> Express Interest
               </button>
-            ) : (
+            )}
+
+            {isInterested && approvalStatus === "approved" && (
               <>
                 <button className="interested-btn">
-                  ❤️ Interest Expressed!
+                  ❤️ Interest Approved
                 </button>
                 <button className="withdraw-btn" onClick={handleWithdraw}>
                   <XCircle className="icon" /> Withdraw Interest
@@ -280,12 +347,20 @@ export default function EventDetailsPage() {
               </>
             )}
 
+            {approvalStatus === "rejected" && (
+              <p className="rejected-msg">Your interest was rejected.</p>
+            )}
+
             <hr className="divider" />
-            <button className="report-btn">
+            <button
+              className="report-btn"
+              onClick={() => setShowFakeReport(true)}
+            >
               <Flag className="icon" /> Report as Fake
             </button>
           </div>
 
+          {/* Capacity card */}
           <div className="card">
             <h3>Event Stats</h3>
             <div className="progress">
@@ -297,25 +372,29 @@ export default function EventDetailsPage() {
             <p>{capacity}% full</p>
           </div>
 
-          {event.paymentDetails && (
-            <div className="card">
-              <h3>
-                <CreditCard className="icon" /> Payment Info
-              </h3>
-              <p>
-                Ticket Price: <b>₹{event.fee || 0}</b>
-              </p>
-              <div className="payment-box">
-                <p>Account Number: {event.paymentDetails.AccountNumber}</p>
-                <p>UPI ID: {event.paymentDetails.UPIID}</p>
-                <p>IFSC Code: {event.paymentDetails.IFSCcode}</p>
-              </div>
-            </div>
-          )}
+          {/* Payment info */}
+      {event.paymentDetails && (
+        <div className="payment-details">
+          <h3>Payment Details</h3>
+          <p><strong>Account Number:</strong> {event.paymentDetails.AccountNumber}</p>
+          <p><strong>UPI ID:</strong> {event.paymentDetails.UPIID}</p>
+          <p><strong>IFSC Code:</strong> {event.paymentDetails.IFSCcode}</p>
+        </div>
+      )}
+
+      {event.contacts && event.contacts.length > 0 && (
+        <div className="contact-details">
+          <h3>Contact Details</h3>
+          {event.contacts.map((contact, index) => (
+            <p key={index}>{contact.name} - {contact.phone}</p>
+          ))}
+        </div>
+      )}
+
         </div>
       </div>
 
-      {/* Payment Confirmation Form */}
+      {/* Payment form */}
       {showForm && (
         <div className="overlay">
           <div className="dialog">
@@ -355,6 +434,32 @@ export default function EventDetailsPage() {
               </button>
               <button onClick={handleSubmit} className="confirm-btn">
                 Confirm Interest
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fake Report */}
+      {showFakeReport && (
+        <div className="overlay">
+          <div className="dialog">
+            <h3>Report Event as Fake</h3>
+            <textarea
+              placeholder="Enter reason for reporting"
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+            />
+
+            <div className="dialog-actions">
+              <button
+                onClick={() => setShowFakeReport(false)}
+                className="cancel-btn"
+              >
+                Cancel
+              </button>
+              <button onClick={handleFakeReport} className="confirm-btn">
+                Submit Report
               </button>
             </div>
           </div>

@@ -14,20 +14,28 @@ const eventRoutes = require('./Routes/eventRoutes');
 const attendeeRoutes = require('./Routes/attendeeRoutes');
 
 const app = express();
+app.set("trust proxy", 1);
 
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended : true}));
-app.use(cookieParser());
-app.use(cors({ origin: "http://localhost:5173" }));  
+
+
 
 app.use('/users',userRoutes);
 app.use('/category',categoryRoutes);
 app.use('/fakeReport',fakeReportRoutes);
 app.use('/interest',interestRoutes);
 app.use('/event',eventRoutes);
-app.use('/ateendee',attendeeRoutes);
+app.use('/atendee',attendeeRoutes);
 app.use("/uploads", express.static("uploads"));
-
 
 
 const connectToDB = async () => {

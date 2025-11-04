@@ -1,31 +1,36 @@
-const fakeReportServices = require("../Services/fakeReportService");
+const fakeReportService = require("../Services/fakeReportService");
+const Event = require("../Schema/eventSchema");
 
-// Create report
+// Create or update report
 async function createReport(req, res) {
   try {
     const payload = {
       eventId: req.body.eventId,
-      reportedBy: req.body.reportedBy, // ideally req.user.id from auth
-      reason: req.body.reason,
-      actionedBy: req.body.actionedBy
+      reportedBy: req.body.reportedBy || null,
+      reason: req.body.reason || null,
+      blockreason: req.body.blockreason || null,
+      actionedBy: req.body.actionedBy || null,
     };
-    const report = await fakeReportServices.createReport(payload);
-    return res.status(201).json({ msg: "Fake event reported", report });
+
+    const report = await fakeReportService.createReport(payload);
+    return res.status(201).json({ msg: "Report saved successfully", report });
   } catch (err) {
-    return res.status(500).json({ msg: "Unable to submit report", error: err.message });
+    console.error("createReport Error:", err);
+    return res.status(500).json({ msg: "Unable to save report", error: err.message });
   }
 }
 
-// List all reports
+// Get all reports
 async function getReports(req, res) {
   try {
     const filter = {};
     if (req.query.eventId) filter.eventId = req.query.eventId;
     if (req.query.reportedBy) filter.reportedBy = req.query.reportedBy;
 
-    const reports = await fakeReportServices.getReports(filter);
-    return res.json({ reports });
+    const reports = await fakeReportService.getReports(filter);
+    return res.status(200).json({ reports });
   } catch (err) {
+    console.error("getReports Error:", err);
     return res.status(500).json({ msg: "Unable to fetch reports", error: err.message });
   }
 }
@@ -33,36 +38,51 @@ async function getReports(req, res) {
 // Get single report
 async function getReportById(req, res) {
   try {
-    const id = req.params.id;
-    const report = await fakeReportServices.getReportById(id);
+    const report = await fakeReportService.getReportById(req.params.id);
     if (!report) return res.status(404).json({ msg: "Report not found" });
-    return res.json({ report });
+    return res.status(200).json({ report });
   } catch (err) {
+    console.error("getReportById Error:", err);
     return res.status(500).json({ msg: "Error fetching report", error: err.message });
   }
 }
 
-// Update report (for admins)
+// Update by MongoDB _id
 async function updateReport(req, res) {
   try {
-    const id = req.params.id;
     const updates = {
-      actionedBy: req.body.actionedBy, // admin id
       ...req.body,
+      actionedBy: req.body.actionedBy || null,
     };
-    const report = await fakeReportServices.updateReport(id, updates);
+    const report = await fakeReportService.updateReport(req.params.id, updates);
     if (!report) return res.status(404).json({ msg: "Report not found" });
-    return res.json({ msg: "Report updated", report });
+    return res.status(200).json({ msg: "Report updated", report });
   } catch (err) {
+    console.error("updateReport Error:", err);
     return res.status(500).json({ msg: "Error updating report", error: err.message });
   }
 }
 
+// Update or create by eventId (admin block/unblock)
+async function updateByEventId(req, res) {
+  try {
+    const { eventId } = req.params;
+    const { blockreason, actionedBy } = req.body;
 
-module.exports = { 
-    createReport, 
-    getReports, 
-    getReportById, 
-    updateReport 
+    const report = await fakeReportService.updateByEventId(eventId, {
+      blockreason,
+      actionedBy,
+    });
+
+    res.status(200).json({ message: "Event updated successfully", report });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+}
+module.exports = {
+  createReport,
+  getReports,
+  getReportById,
+  updateReport,
+  updateByEventId,
 };
-

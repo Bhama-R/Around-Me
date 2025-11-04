@@ -1,183 +1,213 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./ManageEvents.css";
+import { Eye, Lock, Unlock, Loader2 } from "lucide-react";
 
 export default function ManageEvents() {
-    const navigate = useNavigate();
   const [events, setEvents] = useState([]);
-  const [categories, setCategories] = useState([]); // ✅ Always an array
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [loading, setLoading] = useState(false);
+  const userId = localStorage.getItem("userId");
 
-  // ✅ Fetch events
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/event")
-      .then((res) => {
-        if (Array.isArray(res.data)) setEvents(res.data);
-        else console.error("Unexpected events format:", res.data);
-      })
-      .catch((err) => console.error("Error fetching events:", err));
+    fetchEvents();
   }, []);
 
-  // ✅ Fetch categories safely
-  useEffect(() => {
-    axios
-      .get("http://localhost:3000/category/categories")
-      .then((res) => {
-        if (Array.isArray(res.data)) {
-          setCategories(res.data);
-        } else if (Array.isArray(res.data.categories)) {
-          // handle case where backend wraps data
-          setCategories(res.data.categories);
-        } else {
-          console.warn("Unexpected category response:", res.data);
-          setCategories([]);
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching categories:", err);
-        setCategories([]);
-      });
-  }, []);
-
-  // ✅ Filter events
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch =
-      event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.organizer?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" || event.status === statusFilter;
-
-  const matchesCategory =
-  categoryFilter === "all" ||
-  event.category?.name?.toLowerCase() === categoryFilter.toLowerCase();
-
-
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
-
-  // ✅ Block Event
-  const handleBlockEvent = async (id) => {
+  const fetchEvents = async () => {
     try {
-      await axios.put(`http://localhost:3000/event/${id}/block`);
-      alert("Event blocked");
-      setEvents((prev) =>
-        prev.map((e) => (e._id === id ? { ...e, status: "blocked" } : e))
+      setLoading(true);
+
+      // Fetch events
+      const eventsRes = await axios.get("http://localhost:3000/event");
+      const eventsData = eventsRes.data;
+
+      // Fetch fake reports
+      const reportsRes = await axios.get(
+        "http://localhost:3000/fakeReport/reports"
       );
+      const reports = reportsRes.data.reports;
+
+      // Merge block info into events
+      const merged = eventsData.map((event) => {
+        const report = reports.find(
+          (r) => r.eventId && r.eventId._id === event._id
+        );
+
+        return {
+          ...event,
+          isBlocked: !!report?.blockreason,
+          blockreason: report?.blockreason || null,
+          actionedBy: report?.actionedBy || null,
+          reportedBy: report?.reportedBy || null,
+          reason: report?.reason || null,
+        };
+      });
+
+      setEvents(merged);
     } catch (err) {
-      console.error("Error blocking event:", err);
+      console.error("Error fetching events:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ Unblock Event
-  const handleUnblockEvent = async (id) => {
+  // Block Event
+  const handleBlock = async (eventId) => {
+    const blockreason = prompt("Enter reason for blocking this event:");
+    if (!blockreason) return alert("Block reason is required.");
+
     try {
-      await axios.put(`http://localhost:3000/event/${id}/unblock`);
-      alert("Event unblocked");
-      setEvents((prev) =>
-        prev.map((e) => (e._id === id ? { ...e, status: "active" } : e))
+      await axios.put(
+        `http://localhost:3000/fakeReport/report/event/${eventId}`,
+        {
+          blockreason,
+          actionedBy: userId,
+        }
       );
+
+      await axios.put(`http://localhost:3000/event/${eventId}/block`, {
+        status: "inactive",
+      });
+
+      alert("✅ Event blocked successfully and marked inactive.");
+      fetchEvents();
     } catch (err) {
-      console.error("Error unblocking event:", err);
+      console.error("Block Error:", err);
+      alert("Failed to block event.");
+    }
+  };
+
+  // Unblock Event
+  const handleUnblock = async (eventId) => {
+    try {
+      await axios.put(
+        `http://localhost:3000/fakeReport/report/event/${eventId}`,
+        {
+          blockreason: null,
+          actionedBy: userId,
+        }
+      );
+
+      await axios.put(`http://localhost:3000/event/${eventId}/unblock`, {
+        status: "active",
+      });
+
+      alert("✅ Event unblocked successfully and marked active.");
+      fetchEvents();
+    } catch (err) {
+      console.error("Unblock Error:", err);
+      alert("Failed to unblock event.");
     }
   };
 
   return (
     <div className="manage-events">
-      <h2>Manage Events</h2>
-
-      {/* Filters */}
-      <div className="filters">
-        <input
-          type="text"
-          placeholder="Search by title or organizer..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="flagged">Flagged</option>
-          <option value="blocked">Blocked</option>
-          <option value="pending">Pending</option>
-        </select>
-
-        {/* ✅ Category dropdown (safe rendering) */}
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        >
-          <option value="all">All Categories</option>
-          {Array.isArray(categories) &&
-            categories.map((cat) => (
-              <option key={cat._id} value={cat.name}>
-                {cat.name}
-              </option>
-            ))}
-        </select>
-
-        <button onClick={() => navigate("/createEvents")}>Create Event</button>
+      <div className="header-bar">
+        <h2>Manage Events</h2>
       </div>
 
-      {/* Event Table */}
-      <table className="event-table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Organizer</th>
-            <th>Category</th>
-            <th>Status</th>
-            <th>Attendees</th>
-            <th>Date</th>
-            <th>Revenue</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredEvents.length > 0 ? (
-            filteredEvents.map((event) => (
-              <tr key={event._id}>
-                <td>{event.title}</td>
-                <td>{event.organizer}</td>
-               <td>{event.category?.name || "No category"}</td>
-                <td className={`status ${event.status}`}>{event.status}</td>
-                <td>{event.attendees || 0}</td>
-                <td>{event.date}</td>
-                <td>{event.revenue || "-"}</td>
-                <td>
-                  {event.status === "blocked" ? (
-                    <button
-                      className="unblock-btn"
-                      onClick={() => handleUnblockEvent(event._id)}
-                    >
-                      Unblock
-                    </button>
-                  ) : (
-                    <button
-                      className="block-btn"
-                      onClick={() => handleBlockEvent(event._id)}
-                    >
-                      Block
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="8">No events found</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      {loading ? (
+        <div className="loading-container">
+          <Loader2 className="spin" size={28} />
+          <p>Loading events...</p>
+        </div>
+      ) : (
+        <div className="event-table">
+          <div className="table-header">
+            <span>Event</span>
+            <span>Organizer</span>
+            <span>Reported By</span>
+            <span>Reason</span>
+            <span>Category</span>
+            <span>Status</span>
+            <span>Block Reason</span>
+            <span>Actioned By</span>
+            <span>Actions</span>
+          </div>
+
+          {events.map((event) => (
+            <div key={event._id} className="table-row">
+              {/* Event Info (no image) */}
+              <div className="event-info">
+                <div>
+                  <h4>{event.title}</h4>
+                  <p className="event-desc">
+                    {event.description?.slice(0, 60) || "No description"}...
+                  </p>
+                </div>
+              </div>
+
+              {/* Organizer */}
+              <div className="organizer-info">
+                <p>{event.createdBy?.name || "Unknown Organizer"}</p>
+              </div>
+
+              {/* Report Info */}
+              <div className="reportedby-info">
+                <p>{event.reportedBy?.name || "-"}</p>
+              </div>
+
+              <div className="reason-info">
+                <p>{event.reason || "-"}</p>
+              </div>
+
+              {/* Category */}
+              <div className="category-info">
+                {event.category?.name || "Uncategorized"}
+              </div>
+
+              {/* Status */}
+              <div className="status-info">
+                {event.isBlocked ? (
+                  <span className="status blocked">Blocked</span>
+                ) : (
+                  <span className="status active">Active</span>
+                )}
+              </div>
+
+              {/* Block Reason */}
+              <div className="block-reason-info">
+                {event.blockreason || "-"}
+              </div>
+
+              {/* Actioned By */}
+              <div className="actionedby-info">
+                {event.actionedBy?.name || "-"}
+              </div>
+
+              {/* Actions */}
+              <div className="action-buttons">
+                <button
+                  className="view-btn"
+                  onClick={() => window.open(`/event/${event._id}`, "_blank")}
+                >
+                  <Eye size={16} />
+                </button>
+
+                <button
+                  className="block-btn"
+                  onClick={() => handleBlock(event._id)}
+                  disabled={!!event.blockreason}
+                  style={{
+                    opacity: event.blockreason ? 0.6 : 1,
+                    cursor: event.blockreason ? "not-allowed" : "pointer",
+                  }}
+                >
+                  <Lock size={16} />
+                </button>
+
+                {event.isBlocked && (
+                  <button
+                    className="unblock-btn"
+                    onClick={() => handleUnblock(event._id)}
+                  >
+                    <Unlock size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

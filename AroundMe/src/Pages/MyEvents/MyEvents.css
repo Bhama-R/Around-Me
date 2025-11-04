@@ -1,0 +1,261 @@
+/* ====== MyEvents Page Layout ====== */
+.my-events-wrapper {
+  padding: 30px;
+  background: #f9fafb;
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
+}
+
+.page-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  text-align: center;
+  color: #222;
+}
+
+/* ====== Event Grid ====== */
+.event-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+/* ====== Event Card ====== */
+.event-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  transition: all 0.3s ease;
+  border: 1px solid #eee;
+}
+
+.event-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.event-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.desc {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 6px;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.event-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.event-meta svg {
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+/* ====== View Button ====== */
+.view-btn {
+  background-color: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: 0.3s;
+}
+
+.view-btn:hover {
+  background-color: #1d4ed8;
+}
+.view-btn,
+.edit-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+
+.edit-btn {
+  background-color: #ffb703;
+  color: white;
+}
+
+.edit-btn:hover {
+  background-color: #f9a602;
+}
+
+.event-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.edit-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.edit-btn:hover {
+  background-color: #0056b3;
+}
+
+
+/* ====== Participant Section ====== */
+.participant-section {
+  margin-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 15px;
+}
+
+.participant-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #334155;
+}
+
+/* ====== Participant Table ====== */
+.participant-section table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.participant-section th {
+  background-color: #2563eb;
+  color: white;
+  text-align: left;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.participant-section td {
+  padding: 10px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+/* ====== Status Color Badges ====== */
+.pending {
+  color: #b45309;
+  background-color: #fef3c7;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  text-transform: capitalize;
+  text-align: center;
+}
+
+.approved {
+  color: #065f46;
+  background-color: #d1fae5;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  text-transform: capitalize;
+  text-align: center;
+}
+
+.rejected {
+  color: #991b1b;
+  background-color: #fee2e2;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  text-transform: capitalize;
+  text-align: center;
+}
+
+/* ====== Approve / Reject Buttons ====== */
+.approve-btn,
+.reject-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-right: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.25s ease;
+}
+
+.approve-btn {
+  background-color: #10b981;
+  color: white;
+}
+
+.approve-btn:hover {
+  background-color: #059669;
+}
+
+.reject-btn {
+  background-color: #ef4444;
+  color: white;
+}
+
+.reject-btn:hover {
+  background-color: #dc2626;
+}
+
+/* ====== Empty State ====== */
+.no-events {
+  text-align: center;
+  font-size: 16px;
+  color: #6b7280;
+  margin-top: 40px;
+}
+
+
+/* ====== Responsive ====== */
+@media (max-width: 768px) {
+  .event-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .participant-section table {
+    font-size: 13px;
+  }
+
+  .approve-btn,
+  .reject-btn {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+}
+

@@ -121,3 +121,27 @@ input:focus {
   font-weight: 500;
   cursor: pointer;
 }
+
+.resend-section {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.resend-btn {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.resend-btn:hover {
+  text-decoration: underline;
+}
+
+.success-text {
+  color: #0b875b;
+  font-weight: 500;
+  margin-bottom: 10px;
+}

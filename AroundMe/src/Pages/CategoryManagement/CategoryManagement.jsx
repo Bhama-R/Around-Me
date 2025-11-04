@@ -7,6 +7,8 @@ export default function CategoryManagement() {
   const [search, setSearch] = useState("");
   const [events, setEvents] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [confirmPopup, setConfirmPopup] = useState({ visible: false, category: null });
   const [newCategory, setNewCategory] = useState({
     name: "",
     description: "",
@@ -18,7 +20,7 @@ export default function CategoryManagement() {
     fetchCategories();
   }, []);
 
-  // Fetch event data grouped by category
+  // Fetch event stats
   useEffect(() => {
     const fetchEventStats = async () => {
       try {
@@ -40,8 +42,8 @@ export default function CategoryManagement() {
     }
   };
 
-  // Add category
-  const handleAddCategory = async (e) => {
+  // Add / Update category
+  const handleSaveCategory = async (e) => {
     e.preventDefault();
     if (!newCategory.name.trim()) {
       alert("Please enter a category name");
@@ -49,16 +51,62 @@ export default function CategoryManagement() {
     }
 
     try {
-      await axios.post("http://localhost:3000/category/category", newCategory);
-      alert("Category added successfully!");
+      if (editingCategory) {
+        await axios.put(
+          `http://localhost:3000/category/category/${editingCategory._id}`,
+          newCategory
+        );
+        alert("Category updated successfully!");
+      } else {
+        await axios.post("http://localhost:3000/category/category", newCategory);
+        alert("Category added successfully!");
+      }
+
       setShowPopup(false);
+      setEditingCategory(null);
       setNewCategory({ name: "", description: "", icon: "" });
       fetchCategories();
     } catch (err) {
-      console.error("Error adding category:", err);
-      alert("Failed to add category");
+      console.error("Error saving category:", err);
+      alert("Failed to save category");
     }
   };
+
+  // Handle edit
+  const handleEditClick = (cat) => {
+    setEditingCategory(cat);
+    setNewCategory({
+      name: cat.name,
+      description: cat.description,
+      icon: cat.icon || "",
+    });
+    setShowPopup(true);
+  };
+
+  // Toggle Active / Inactive
+const handleToggleStatus = (cat) => {
+  const updatedStatus = cat.status === "active" ? "inactive" : "active";
+
+  if (updatedStatus === "inactive") {
+    setConfirmPopup({ visible: true, category: cat });
+  } else {
+    toggleCategoryStatus(cat, updatedStatus);
+  }
+};
+
+const toggleCategoryStatus = async (cat, status) => {
+  try {
+    await axios.put(`http://localhost:3000/category/category/${cat._id}`, {
+      status,
+    });
+    alert(`Category "${cat.name}" has been ${status}.`);
+    fetchCategories();
+  } catch (err) {
+    console.error("Error toggling status:", err);
+    alert("Failed to update category status");
+  }
+};
+
 
   const filteredCategories = categories.filter(
     (cat) =>
@@ -89,6 +137,7 @@ export default function CategoryManagement() {
           <h3>Total Events</h3>
           <p>
             {events.reduce((acc, ev) => acc + (ev.totalRevenue || 0), 0).toFixed(
+              0
             )}
           </p>
         </div>
@@ -107,12 +156,12 @@ export default function CategoryManagement() {
         </button>
       </div>
 
-      {/* Popup Modal for Add Category */}
+      {/* Popup Modal for Add/Edit Category */}
       {showPopup && (
         <div className="popup-overlay">
           <div className="popup-content">
-            <h2>Add New Category</h2>
-            <form onSubmit={handleAddCategory}>
+            <h2>{editingCategory ? "Edit Category" : "Add New Category"}</h2>
+            <form onSubmit={handleSaveCategory}>
               <label>Category Name</label>
               <input
                 type="text"
@@ -147,12 +196,15 @@ export default function CategoryManagement() {
 
               <div className="popup-buttons">
                 <button type="submit" className="save-btn">
-                  Save
+                  {editingCategory ? "Update" : "Save"}
                 </button>
                 <button
                   type="button"
                   className="cancel-btn"
-                  onClick={() => setShowPopup(false)}
+                  onClick={() => {
+                    setShowPopup(false);
+                    setEditingCategory(null);
+                  }}
                 >
                   Cancel
                 </button>
@@ -182,10 +234,50 @@ export default function CategoryManagement() {
               <div className="card-body">
                 <h3>{cat.name}</h3>
                 <p>{cat.description}</p>
-                <div className="card-actions">
-                  <button className="edit-btn">Edit</button>
-                  <button className="delete-btn">Delete</button>
+                <div className="card-actions inline-buttons">
+                  <button className="edit-btn" onClick={() => handleEditClick(cat)}>
+                    Edit
+                  </button>
+                  <button
+                    className={`${
+                      cat.status === "active" ? "deactivate-btn" : "activate-btn"
+                    }`}
+                    onClick={() => handleToggleStatus(cat)}
+                  >
+                    {cat.status === "active" ? "Deactivate" : "Activate"}
+                  </button>
                 </div>
+                {/* Confirm Deactivation Popup */}
+{confirmPopup.visible && (
+  <div className="popup-overlay">
+    <div className="popup-content confirm-popup">
+      <h2>Confirm Deactivation</h2>
+      <p>
+        Are you sure you want to deactivate{" "}
+        <strong>{confirmPopup.category.name}</strong>? <br />
+        All events under this category will also become inactive.
+      </p>
+      <div className="popup-buttons">
+        <button
+          className="deactivate-btn"
+          onClick={() => {
+            toggleCategoryStatus(confirmPopup.category, "inactive");
+            setConfirmPopup({ visible: false, category: null });
+          }}
+        >
+          Yes, Deactivate
+        </button>
+        <button
+          className="cancel-btn"
+          onClick={() => setConfirmPopup({ visible: false, category: null })}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
               </div>
             </div>
           ))

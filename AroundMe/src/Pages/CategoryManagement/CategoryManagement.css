@@ -249,6 +249,59 @@ h1 {
   background-color: #c82333;
 }
 
+.inline-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.edit-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.activate-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.deactivate-btn {
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.edit-btn:hover,
+.activate-btn:hover,
+.deactivate-btn:hover {
+  opacity: 0.85;
+}
+
+.confirm-popup h2 {
+  color: #e63946;
+  margin-bottom: 10px;
+}
+
+.confirm-popup p {
+  font-size: 16px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+
 /* Animation */
 @keyframes fadeIn {
   from {

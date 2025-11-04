@@ -3,7 +3,6 @@ import axios from "axios";
 import "./UserManagement.css";
 import {
   Search,
-  Filter,
   Users,
   UserCheck,
   UserX,
@@ -11,13 +10,12 @@ import {
   Shield,
   Mail,
   Phone,
-  Ban,
   Eye,
   Edit,
   CheckCircle,
-  XCircle,
-  Clock,
   MoreHorizontal,
+  Save,
+  XCircle,
 } from "lucide-react";
 
 export default function UserManagement() {
@@ -25,24 +23,39 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [newRole, setNewRole] = useState("");
 
-  // ✅ Fetch users from backend
   useEffect(() => {
     axios
-      .get("http://localhost:3000/users") 
-      .then((res) => setUsers(res.data))
-      .catch((err) => console.error("Error fetching users:", err));
+      .get("http://localhost:3000/users", { withCredentials: true })
+      .then((res) => {
+        if (res.data.status && Array.isArray(res.data.data)) {
+          setUsers(res.data.data);
+        } else if (Array.isArray(res.data.users)) {
+          setUsers(res.data.users);
+        } else if (Array.isArray(res.data)) {
+          setUsers(res.data);
+        } else {
+          console.error("Unexpected API response format:", res.data);
+          setUsers([]);
+        }
+      })
+      .catch((err) => console.error("❌ Error fetching users:", err));
   }, []);
 
   // ✅ Filter logic
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const filteredUsers = Array.isArray(users)
+    ? users.filter((user) => {
+        const matchesSearch =
+          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesRole = roleFilter === "all" || user.role === roleFilter;
+        const matchesStatus =
+          statusFilter === "all" || user.status === statusFilter;
+        return matchesSearch && matchesRole && matchesStatus;
+      })
+    : [];
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -50,25 +63,63 @@ export default function UserManagement() {
         return <span className="badge badge-active">Active</span>;
       case "suspended":
         return <span className="badge badge-suspended">Suspended</span>;
-      case "pending":
-        return <span className="badge badge-pending">Pending</span>;
       default:
         return <span className="badge badge-default">Unknown</span>;
     }
   };
 
-  const handleSuspend = async (id) => {
-    await axios.put(`http://localhost:3000/users/${id}/suspend`);
-    setUsers((prev) =>
-      prev.map((u) => (u._id === id ? { ...u, status: "suspended" } : u))
-    );
+  // ✅ Suspend user
+  const handleSuspend = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.put(
+        `http://localhost:3000/users/${userId}/suspend`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      );
+      if (res.status === 200) alert("User suspended!");
+    } catch (err) {
+      console.error("❌ Error suspending user:", err);
+      alert("Error suspending user.");
+    }
   };
 
-  const handleActivate = async (id) => {
-    await axios.put(`http://localhost:3000/users/${id}/activate`);
-    setUsers((prev) =>
-      prev.map((u) => (u._id === id ? { ...u, status: "active" } : u))
-    );
+  // ✅ Activate user
+  const handleActivate = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.put(
+        `http://localhost:3000/users/${userId}/activate`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      );
+      if (res.status === 200) alert("User activated!");
+    } catch (err) {
+      console.error("❌ Error activating user:", err);
+      alert("Error activating user.");
+    }
+  };
+
+  // ✅ Update role
+  const handleSaveRole = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.put(
+        `http://localhost:3000/users/role/${userId}`,
+        { role: newRole },
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      );
+      if (res.status === 200) {
+        alert("Role updated successfully!");
+        setUsers(
+          users.map((u) => (u._id === userId ? { ...u, role: newRole } : u))
+        );
+        setEditingUserId(null);
+      }
+    } catch (err) {
+      console.error("❌ Error updating role:", err);
+      alert("Error updating role.");
+    }
   };
 
   return (
@@ -78,7 +129,7 @@ export default function UserManagement() {
         <p>Manage user roles, status, and permissions</p>
       </div>
 
-      {/* Filters */}
+      {/* 🔍 Filters */}
       <div className="filters">
         <div className="search-box">
           <Search className="icon" />
@@ -94,7 +145,7 @@ export default function UserManagement() {
           <option value="all">All Roles</option>
           <option value="admin">Admin</option>
           <option value="event_manager">Event Manager</option>
-          <option value="general">General</option>
+          <option value="member">Member</option>
         </select>
 
         <select
@@ -104,20 +155,14 @@ export default function UserManagement() {
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
-          <option value="pending">Pending</option>
         </select>
-
-        <button className="filter-btn">
-          <Filter size={16} /> More Filters
-        </button>
       </div>
 
-      {/* User Table */}
       <div className="table-container">
         <table className="user-table">
           <thead>
             <tr>
-              <th>User</th>
+              <th>Name</th>
               <th>Contact</th>
               <th>Role</th>
               <th>Join Date</th>
@@ -130,60 +175,63 @@ export default function UserManagement() {
               filteredUsers.map((user) => (
                 <tr key={user._id}>
                   <td>
-                    <div className="user-info">
-                      <img
-                        src={user.avatar || "/default-avatar.png"}
-                        alt={user.name}
-                        className="avatar"
-                      />
-                      <div>
-                        <p className="user-name">
-                          {user.name}{" "}
-                          {user.verified && (
-                            <CheckCircle size={14} className="verified-icon" />
-                          )}
-                        </p>
-                        <p className="user-location">{user.location}</p>
-                      </div>
-                    </div>
+                    {user.name}{" "}
+                    {user.verified && (
+                      <CheckCircle size={14} className="verified-icon" />
+                    )}
+                  </td>
+                  <td>
+                    <p><Mail size={14} /> {user.email}</p>
+                    <p><Phone size={14} /> {user.mobile || "—"}</p>
                   </td>
 
+                  {/* Editable Role */}
                   <td>
-                    <p>
-                      <Mail size={14} className="icon-inline" /> {user.email}
-                    </p>
-                    <p>
-                      <Phone size={14} className="icon-inline" /> {user.phone}
-                    </p>
-                  </td>
-
-                  <td>
-                    <div className="role">
-                      {user.role === "admin" ? (
-                        <Crown className="role-icon admin" />
-                      ) : user.role === "event_manager" ? (
-                        <Shield className="role-icon manager" />
-                      ) : (
-                        <Users className="role-icon general" />
-                      )}
-                      <span className={`role-text ${user.role}`}>
-                        {user.role.replace("_", " ")}
-                      </span>
-                    </div>
+                    {editingUserId === user._id ? (
+                      <select
+                        value={newRole}
+                        onChange={(e) => setNewRole(e.target.value)}
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="event_manager">Event Manager</option>
+                        <option value="member">Member</option>
+                      </select>
+                    ) : (
+                      <span>{user.role}</span>
+                    )}
                   </td>
 
                   <td>{user.joinDate || "N/A"}</td>
-
                   <td>{getStatusBadge(user.status)}</td>
 
                   <td>
                     <div className="action-btns">
-                      <button className="icon-btn">
-                        <Eye size={16} />
-                      </button>
-                      <button className="icon-btn">
-                        <Edit size={16} />
-                      </button>
+                      {editingUserId === user._id ? (
+                        <>
+                          <button
+                            className="icon-btn save"
+                            onClick={() => handleSaveRole(user._id)}
+                          >
+                            <Save size={16} />
+                          </button>
+                          <button
+                            className="icon-btn cancel"
+                            onClick={() => setEditingUserId(null)}
+                          >
+                            <XCircle size={16} />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="icon-btn edit"
+                          onClick={() => {
+                            setEditingUserId(user._id);
+                            setNewRole(user.role);
+                          }}
+                        >
+                          <Edit size={16} />
+                        </button>
+                      )}
 
                       {user.status === "suspended" ? (
                         <button
@@ -200,10 +248,6 @@ export default function UserManagement() {
                           <UserX size={16} />
                         </button>
                       )}
-
-                      <button className="icon-btn">
-                        <MoreHorizontal size={16} />
-                      </button>
                     </div>
                   </td>
                 </tr>
