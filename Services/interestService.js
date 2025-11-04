@@ -36,6 +36,8 @@ async function getInterestById(id) {
   }
 }
 
+
+
 // Update status (approve / reject)
 async function updateInterestStatus(interestId, status) {
   try {
@@ -99,6 +101,16 @@ async function getMyInterestedEvents(userId) {
   }
 }
 
+async function updateMany(filter, updateData) {
+  try {
+    const result = await Interest.updateMany(filter, updateData);
+    console.log(`✅ ${result.modifiedCount} interests updated.`);
+    return result;
+  } catch (err) {
+    console.error("updateMany", err);
+    throw err;
+  }
+}
 module.exports = {
   createInterest,
   getInterests,
@@ -107,4 +119,5 @@ module.exports = {
   withdrawInterest,
   getParticipantsByEvent,
   getMyInterestedEvents,
+  updateMany,
 };

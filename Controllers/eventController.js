@@ -107,7 +107,6 @@ async function block(req, res) {
   try {
     const event = await EventService.blockEvent(req.params.id);
     res.json(event);
-    console.log("🧩 Blocking event with ID:", id);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

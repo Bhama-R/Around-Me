@@ -108,6 +108,5 @@ module.exports = {
   createReport,
   getReports,
   getReportById,
-  updateReport,
   updateByEventId,
 };

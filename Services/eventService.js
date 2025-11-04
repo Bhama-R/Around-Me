@@ -120,28 +120,23 @@ async function deleteEvent(id, userId) {
 
 // Block / Unblock event
 async function blockEvent(id) {
-  // 1️⃣ Block the event
-  const blockedEvent = await Event.findByIdAndUpdate(
-    id,
-    { status: "blocked" },
-    { new: true }
-  );
+  try {
+    const event = await Event.findByIdAndUpdate(id, { status: "blocked" }, { new: true });
 
-  if (!blockedEvent) {
-    throw new Error("Event not found");
+    await InterestService.updateMany(
+      { eventId: new mongoose.Types.ObjectId(id), status: "approved" },
+      { $set: { status: "pending" } }
+    );
+const check = await InterestService.getInterests(); // fetch all interests
+console.log("🧩 Interests after update:", check);
+
+    console.log(`✅ Updated all approved interests for event ${id} to pending.`);
+    return event;
+  } catch (err) {
+    console.error("❌ Error blocking event:", err);
+    throw err;
   }
-
-  // 2️⃣ Update all approved interests for this event to pending
-  await Interest.updateMany(
-    { eventId: id, status: "approved" },
-    { $set: { status: "pending" } }
-  );
-
-  console.log(`✅ Updated all approved interests for event ${id} to pending.`);
-
-  return blockedEvent;
 }
-
 
 async function unblockEvent(id) {
   return await Event.findByIdAndUpdate(id, { status: "active" }, { new: true });

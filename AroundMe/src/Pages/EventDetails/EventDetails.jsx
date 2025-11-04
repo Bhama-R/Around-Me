@@ -361,7 +361,7 @@ export default function EventDetailsPage() {
           </div>
 
           {/* Capacity card */}
-          <div className="card">
+          {/* <div className="card">
             <h3>Event Stats</h3>
             <div className="progress">
               <div
@@ -370,7 +370,7 @@ export default function EventDetailsPage() {
               ></div>
             </div>
             <p>{capacity}% full</p>
-          </div>
+          </div> */}
 
           {/* Payment info */}
       {event.paymentDetails && (
