@@ -29,7 +29,7 @@ export default function CreateEvent() {
       mapLink: "",
     },
     restrictions: {
-      gender: "",
+      gender: "any",
       ageMin: "",
       ageMax: "",
       place: "",
@@ -320,12 +320,12 @@ export default function CreateEvent() {
             <div className="grid">
               <div className="form-group">
                 <label>Gender</label>
-                <select
+               <select
                   name="gender"
-                  value={formData.restrictions.gender}
+                  value={formData.restrictions.gender || "any"}
                   onChange={handleChange}
                 >
-                  <option value="">Any</option>
+                  <option value="any">Any</option>
                   <option value="male">Male Only</option>
                   <option value="female">Female Only</option>
                   <option value="trans">Trans</option>
